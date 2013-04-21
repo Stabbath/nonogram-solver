@@ -63,6 +63,8 @@ provavelmente vão ser preciso mais estruturas dentro da estrutura puzzle, para 
 
 //quando o puzzle estiver resolvido, se for descoberto que a solução está errada, volta-se um nível de recursão atrás, e tenta-se para o valor oposto no mesmo quadrado. se a solução estiver errada outra vez, volta-se atrás um nível, e depois volta-se atrás outra vez, e tenta-se para o valor oposto, etc. ad infinitum
 
+//cut down on {'s on for's and if's and whatnot, code needs shortening and readabilitifying
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -70,6 +72,7 @@ provavelmente vão ser preciso mais estruturas dentro da estrutura puzzle, para 
 #include "stacks.h"
 
 #define ERROR_BADFORMAT "Error! Invalid file formatting."
+#define ERROR_404		"Error! File not found."
 
 #define BUFFERSIZE	64
 
@@ -110,14 +113,11 @@ void checkblankln(FILE* fp) {
 	}
 }
 
-
+//remeber to add checks for success of memory allocation
 Puzzle* getPuzzle(char* name) {
 	FILE* fp = fopen(name, "r");
 
-	if (fp == NULL) {
-		printf("error");
-		exit(1);
-	}
+	if (fp == NULL)	errorout(ERROR_404, "Wrong directory or name for puzzle config.");
 	
 	Puzzle* puzzle = (Puzzle*) malloc(sizeof(Puzzle));
 	
