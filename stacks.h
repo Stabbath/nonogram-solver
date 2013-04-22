@@ -12,8 +12,10 @@ typedef struct _stack {
 	Element* top;
 } Stack;
 
-Stack* CreateStack() {}
-void Push(Stack* stack, Item* item) {}
-Item* Pop(Stack* stack) {}
+Stack*	CreateStack();
+void	Push(Stack*, Item*);
+Item*	Pop(Stack*);
+void	ClearStack(Stack*);
+int		IsStackEmpty(Stack*);
 
 #endif
