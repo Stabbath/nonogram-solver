@@ -50,6 +50,7 @@ provavelmente vão ser preciso mais estruturas dentro da estrutura puzzle, para 
 #define ERROR_BADFORMAT "Error! Invalid file formatting."
 #define ERROR_404		"Error! File not found."
 #define ERROR_MEM		"Error! Failed to allocate memory."
+#define ERROR_ARGS		"Error! Invalid commandline arguments."
 
 #define BUFFERSIZE	64
 
@@ -59,6 +60,7 @@ provavelmente vão ser preciso mais estruturas dentro da estrutura puzzle, para 
 
 #define ROW 0	//for array indexing
 #define COL 1
+#define AXES 2
 
 typedef struct _cell {
 	char state;		//STATE_FULL, STATE_BLNK, STATE_UNKN
@@ -211,6 +213,20 @@ void LineCopy(Line* line1, Line* line2, int length) {
 	}
 }
 
+Puzzle* CopyPuzzle() {
+
+}
+
+void ExportSolution(Puzzle* puzzle) {
+	int i, j;
+	for (j = 0; j < puzzle->length[COL]; j++) {
+		for (i = 0; i < puzzle->length[ROW]; i++) {
+			printf("%c", puzzle->line[ROW]->cells[i]->state);
+		}
+		printf("\n");
+	}
+}
+
 int getMinSumOfBlocksAndBlanks() {
 
 }
@@ -278,10 +294,10 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack) {
  *
  *	@verbose : uses solveline for every row in the stacks until they are empty or the puzzle has been solved. If the stacks are emptied before the solution is found, selects an unknown cell and tests both possible values. Does all this recursively until all solutions have been found.
  */
-void solve(Puzzle* puzzle, Stack* stackRow, Stack* stackCol, int unsolvedCellCount) {
-	while (!IsStackEmpty(stackRow) || !IsStackEmpty(stackCol) && unsolvedCellCount > 0) {
-		unsolvedCellCount -= solveline(puzzle, Pop(stackCol), stackRow);
-		unsolvedCellCount -= solveline(puzzle, Pop(stackRow), stackCol);
+void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
+	while (!IsStackEmpty(stack[ROW]) || !IsStackEmpty(stack[COL]) && unsolvedCellCount > 0) {
+		unsolvedCellCount -= solveline(puzzle, Pop(stack[COL]), stack[ROW]);
+		unsolvedCellCount -= solveline(puzzle, Pop(stack[ROW]), stack[COL]);
 	}
 	
 	if (unsolvedCellCount > 0) {
@@ -292,18 +308,18 @@ void solve(Puzzle* puzzle, Stack* stackRow, Stack* stackCol, int unsolvedCellCou
 		//get a random unknown cell, store coords		
 		
 		//set it to STATE_FULL		
-		Push(stackRow, (void*) &newPuzzle->line[ROW][row]);
-		Push(stackCol, (void*) &newPuzzle->line[COL][col]);
-		solve(newPuzzle, stackRow, stackCol, unsolvedCellCount);
+		Push(stack[ROW], (void*) &newPuzzle->line[ROW][row]);
+		Push(stack[COL], (void*) &newPuzzle->line[COL][col]);
+		solve(newPuzzle, stack, unsolvedCellCount);
 		
 		//set it to STATE_BLNK
-		Push(stackRow, (void*) &newPuzzle->line[ROW][row]);
-		Push(stackCol, (void*) &newPuzzle->line[COL][col]);
-		solve(newPuzzle, stackRow, stackCol, unsolvedCellCount);
+		Push(stack[ROW], (void*) &newPuzzle->line[ROW][row]);
+		Push(stack[COL], (void*) &newPuzzle->line[COL][col]);
+		solve(newPuzzle, stack, unsolvedCellCount);
 	} else
 	if (unsolvedCellCount = 0) {
-		ClearStack(stackRow);	//could just not push perpendicular lines that are already
-		ClearStack(stackCol);	//solved instead of clearing stacks here
+		ClearStack(stack[ROW]);	//could just not push perpendicular lines that are already
+		ClearStack(stack[COL]);	//solved instead of clearing stacks here
 
 		ExportSolution(puzzle);
 	} else {
@@ -314,21 +330,19 @@ void solve(Puzzle* puzzle, Stack* stackRow, Stack* stackCol, int unsolvedCellCou
 }
 
 int main (int n, char** args) {
-		if (n < 2) {
-		printf("lol no\n");
-		return -1;
-	}
+	if (n < 2) errorout(ERROR_ARGS, "No file name was given.");
 	
 	Puzzle* puzzle = getPuzzle(args[1]);
 	
-	Stack* stackRow = CreateStack();
-	Stack* stackCol = CreateStack();
+	Stack** stack = (Stack**) malloc(AXES*sizeof(Stack*));
+	stack[ROW] = CreateStack();
+	stack[COL] = CreateStack();
 	
 	int i;
-	for (i = 0; i < puzzle->length[ROW]; i++)	Push(stackRow, (void*) &puzzle->line[ROW][i]);
-	for (i = 0; i < puzzle->length[COL]; i++)	Push(stackRow, (void*) &puzzle->line[COL][i]);
+	for (i = 0; i < puzzle->length[ROW]; i++)	Push(stack[ROW], (void*) &puzzle->line[ROW][i]);
+	for (i = 0; i < puzzle->length[COL]; i++)	Push(stack[COL], (void*) &puzzle->line[COL][i]);
 	
-	solve(puzzle, stackRow, stackCol, puzzle->length[ROW] * puzzle->length[COL]);
+	solve(puzzle, stack, puzzle->length[ROW] * puzzle->length[COL]);
 	
 	return 0;	
 }
