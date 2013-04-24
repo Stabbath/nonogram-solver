@@ -29,8 +29,6 @@ provavelmente vão ser precisas mais estruturas dentro da estrutura puzzle, para
 //remember this:
 //guardar o numero da coluna/linha perpendicular à linha/coluna em que cada ponto é descoberto numa lista FIFO, não repetir números
 
-
-
 #ifndef _SOLVER_INCLUDED
 #define _SOLVER_INCLUDED
 
@@ -59,14 +57,13 @@ typedef struct _block {
 
 typedef struct _line {
 	Cell** cells;	//array of pointers to cells
-	Block* block;		//array of blocks for this line
+	Block* block;	//array of blocks for this line
 	int blockNum;
 } Line;
 
 typedef struct _puzzle {
 	int* length;				//number of rows and columns
 	Line** line;				//2 arrays of lines
-	Cell*** cellptr;			//2 2d arrays of cells, only really used for copying
 } Puzzle;
 
 void ExportSolution(Puzzle*);
@@ -80,8 +77,8 @@ Puzzle* getPuzzle(char*);
 
 void LineCopy(Line*, Line*, int);
 Puzzle* CopyPuzzle(Puzzle*);
-int getMinSumOfBlocksAndBlanks(Puzzle*, Line*, int);
-int getLengthOfLargestBlock(Puzzle*, Line*, int);
+int getMinSumOfBlocksAndBlanks(Line*);
+int getLengthOfLargestBlock(Line*);
 
 /** stackline - "stacks" the right-most and left-most positionings of all blocks and compares them
  *	@param Puzzle* :	pointer to puzzle that's being worked on
