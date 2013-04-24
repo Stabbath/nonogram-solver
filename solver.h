@@ -1,5 +1,7 @@
 /*
-//maybe track number of unsolved cells?
+//fazer alocação de mem para puzzles (leitura e copia) através de linhas e colunas, sem cell***: aloca mem para linhas, e depois faz com que cada coluna N aponte para a celula N de cada linha
+//usar calculos para determinar as posicoes preenchidas em vez de criar 2 linhas clone e cenas
+
 //guardar posicoes de começo e fim de cada bloco (não só os X blocos da linha, mas todos os blocos identificáveis ao longo da procura da solução. por exemplo um bloco de 3 de que é desconhecido o quadrado do meio pode ser considerado 2 blocos)
 
 *1 //talvez guardar a posicao minima e maxima de começo para cada um dos blocos para determinar quais os blocos que podemos encontrar em cada parte
