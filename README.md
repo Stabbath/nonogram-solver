@@ -22,27 +22,27 @@ Let's take a simple premise: say that the program starts by solving the 4th colu
 
 We start solving the 4th column: the solution to it is instantaneous.
 
- 0 1 2 0
-0      x
-0      x
-1      x
-2      x
+ 0 1 2 0  
+0      x  
+0      x  
+1      x  
+2      x  
 
 So the perpendicular rows were added to the stack, the 4th one being last. Before using the stack, the program still solves the 1st column, by hypothesis:
 
- 0 1 2 0
-0x     x
-0x     x
-1x     x
-2x     x
+ 0 1 2 0  
+0x     x  
+0x     x  
+1x     x  
+2x     x  
 
 Once again the rows are added to the stack, the 4th one being last once more. Now the program uses the stack: we solve the 4th row.
 
- 0 1 2 0
-0x     x
-0x     x
-1x     x
-2x # # x
+ 0 1 2 0  
+0x     x  
+0x     -  
+1x     -  
+2x # # -  
 
 The fact that we had identified 2 cells in this row made it so that we could identify the remaining 2. This is a loose example, but it's basically common sense that what is being proposed is true.
 
