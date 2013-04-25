@@ -14,15 +14,15 @@ Imagine we are solving a row and discover that it's 4th cell must be FULL. This 
 
 Let's take a simple premise: say that the program starts by solving the 4th column, followed by the 1st, and then it starts solving lines from the stack, and as it identifies each cell it pushes its perpendicular line onto the stack of lines that should be solved.
 
- 0 1 2 0  
-0  
-0  
-1  
-2  
+x0 1 2 0  
+0? ? ? ?  
+0? ? ? ?  
+1? ? ? ?  
+2? ? ? ?  
 
 We start solving the 4th column: the solution to it is instantaneous.
 
- 0 1 2 0  
+x0 1 2 0  
 0? ? ? ␣  
 0? ? ? ␣  
 1? ? ? ␣  
@@ -30,7 +30,7 @@ We start solving the 4th column: the solution to it is instantaneous.
 
 So the perpendicular rows were added to the stack, the 4th one being last. Before using the stack, the program still solves the 1st column, by hypothesis:
 
- 0 1 2 0  
+x0 1 2 0  
 0␣ ? ? ␣  
 0␣ ? ? ␣  
 1␣ ? ? ␣  
@@ -38,7 +38,7 @@ So the perpendicular rows were added to the stack, the 4th one being last. Befor
 
 Once again the rows are added to the stack, the 4th one being last once more. Now the program uses the stack: we solve the 4th row.
 
- 0 1 2 0  
+x0 1 2 0  
 0␣ ? ? ␣  
 0␣ ? ? ␣  
 1␣ ? ? ␣  
