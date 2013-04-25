@@ -65,5 +65,6 @@ Finish functions to free allocated memory.
 Test with valgrind to make sure everything's good in that department.  
 Improve line solving algorithm.  
 ####Secondary
+Continue writing readme, including mentions of previous 2d Cell array scheme and whatnot.  
 Make sure all memory allocs will errorout if return pointer is null, and other similar things.  
 Change ExportSolution to export solutions into (a) text file(s) rather than print to console.  
