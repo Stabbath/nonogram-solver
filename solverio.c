@@ -18,20 +18,46 @@ void debp(const char* format, ... ) {
 	#endif
 }
 
+void ExportConfig(Puzzle* puzzle) {
+	int i, j;
+	printf("%d\n", puzzle->length[ROW]);
+	printf("%d\n", puzzle->length[COL]);
+	printf("\n");
+	for (j = 0; j < puzzle->length[ROW]; j++) {
+		printf("%d ", puzzle->line[ROW][j].blockNum);
+		for (i = 0; i < puzzle->line[ROW][j].blockNum; i++) {
+			printf("%d ", puzzle->line[ROW][j].block[i].length);
+		}
+		printf("\n");
+	}
+	printf("\n");
+	for (j = 0; j < puzzle->length[COL]; j++) {
+		printf("%d ", puzzle->line[COL][j].blockNum);
+		for (i = 0; i < puzzle->line[COL][j].blockNum; i++) {
+			printf("%d ", puzzle->line[COL][j].block[i].length);
+		}
+		printf("\n");
+	}
+	printf("\n");
+}
+
 void ExportSolution(Puzzle* puzzle) {
 	static int solutions = 0;
 
 	if (puzzle == NULL && solutions == 0) {
 		//there are no solutions
 	} else {
+		ExportConfig(puzzle);
+	
 		int i, j;
-		for (j = 0; j < puzzle->length[COL]; j++) {
-			for (i = 0; i < puzzle->length[ROW]; i++) {
-				printf("%c", puzzle->line[ROW][i].cells[j]->state);
+		for (j = 0; j < puzzle->length[ROW]; j++) {
+			for (i = 0; i < puzzle->length[COL]; i++) {
+				printf("%c", puzzle->line[COL][i].cells[j]->state);
 			}
 			printf("\n");
 		}
-
+		printf("\n");
+		
 /*		printf("\n");	//to make sure rows and columns point to the same cells
 		for (j = 0; j < puzzle->length[COL]; j++) {
 			for (i = 0; i < puzzle->length[ROW]; i++) {

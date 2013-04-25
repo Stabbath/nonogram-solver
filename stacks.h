@@ -17,5 +17,6 @@ void	Push(Stack*, Item*);
 Item*	Pop(Stack*);
 void	ClearStack(Stack*);
 int		IsStackEmpty(Stack*);
+int		IsInStack(Stack*, Item*);
 
 #endif

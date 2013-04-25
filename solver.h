@@ -68,17 +68,16 @@ typedef struct _puzzle {
 	Line** line;				//2 arrays of lines
 } Puzzle;
 
+void debp(const char*, ... );
 void ExportSolution(Puzzle*);
-void copyGridToLines(Puzzle*, Cell***);
-Cell*** createCellGrid(Puzzle*);
 void getDimension(Puzzle*, FILE*, int);
 void getBlockLengths(Puzzle*, FILE*, int);
 void errorout(char* type, char* details);
 void checkblankln(FILE* fp);
 Puzzle* getPuzzle(char*);
 
-void LineCopy(Line*, Line*, int);
-Puzzle* CopyPuzzle(Puzzle*);
+Line* CloneLine(Line*, int);
+Puzzle* ClonePuzzle(Puzzle*);
 int getMinSumOfBlocksAndBlanks(Line*);
 int getLengthOfLargestBlock(Line*);
 
