@@ -66,6 +66,6 @@ Test with valgrind to make sure everything's good in that department.
 Improve and implement line solving algorithm.  
 ####Secondary
 Write function descriptions and add missing functions to headers.  
-Continue writing readme, including mentions of previous 2d Cell array scheme and whatnot.  
+Continue writing readme, including mentions of previous 2d Cell array scheme and whatnot, maybe mention debug functions.  
 Make sure all memory allocs will errorout if return pointer is null, and other similar things.  
 Change ExportSolution to export solutions into (a) text file(s) rather than print to console.  
