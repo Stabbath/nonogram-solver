@@ -4,7 +4,11 @@ Title is self-explanatory: code for a nonogram-solving program. Only for single-
 
 ##How it works!
 ###Overview
-The puzzle is broken up into a series of lines, 1 for each row and 1 for each column, which are all handled separately. The reasoning behind this is that the solution for a line is not directly dependent of any others: simply of the number and length of its blocks and of the information already gathered about it. Since each row and column pair have 1 cell in common, this means that a 
+The puzzle is broken up into a series of lines, 1 for each row and 1 for each column, which are all handled separately. The reasoning behind this is that the solution for a line is not directly dependent of any others: simply of the number and length of its blocks and of the information already gathered about it. Since each row and column pair have 1 cell in common, this means that when you discover information on one line, you have also discovered information on other lines. Then when you solve those lines, you once again find information that is shared with other lines, and so on, recursively, until the puzzle is solved.
+
+In extreme situations, especially in cases where the puzzle is complex AND has multiple solutions, or even a few rare cases where it has no solutions but the impossibility is not obvious, it might be necessary to 'guess' solutions. In these situations, the program will select an unidentified cell, and test solving the puzzle again after forcing it to both possible values. This is done recursively, so even if the first selection isn't helpful, the program will keep running until all possible solutions (if there are any) are found.
+
+Currently, the algorithm is extremely incomplete: 'solving a line' simply means overlapping the leftmost and rightmost possible solutions of the line. The tracking of impossibilities is hardly done either! Still a lot of work to do.
 
 ###Stacks
 ####Main
@@ -49,8 +53,17 @@ The fact that we had identified 2 cells in this row made it so that we could ide
 The way it currently works is that we treat rows and columns differently, so that we can keep track of which ones are rows and which ones are columns, because as it is right now the length of rows and columns is defined in the main structure, Puzzle, rather than inside of each line. This is because all rows have the same length, and all columns have the same length, so it hardly warrants the additional memory usage. This might be changed in the future, since the alternative would simplify code.
 
 ####Did it have to be a stack?
-No, in fact the first thing that occured to me was a FIFO list, but after manually solving a few puzzles following the described logic, it appeared that stacks were always better than FIFO. This most likely (read: definitely) depends on the puzzle itself, but stacks have the added benefit of being a tiny bit simpler (only need to track the top).
+No, in fact the first thing that occured to me was a FIFO list, but after manually solving a few puzzles following the described logic, it appeared that stacks were always better than FIFO. This most likely (read: definitely) depends on the puzzle itself, but stacks have the added benefit of being a tiny bit simpler (only need to track the top). Not much of an argument, but the kind of list is not really significant, as long as it's simple and straightforward in terms of addition and removal of elements.
 
 ####Possible developments
-Might use a single stack for rows and columns in the future, as described at the end of the main stacks section.
-Will use a different structure if it turns out that there's something much more efficient than stacks for a majority of puzzles. (doubtful)
+Might use a single stack for rows and columns in the future, as described at the end of the main stacks section.  
+Will use a different structure if it turns out that there's something much more efficient than stacks for a majority of puzzles. (doubtful)  
+
+###todo:
+####Priorities
+Finish functions to free allocated memory.  
+Test with valgrind to make sure everything's good in that department.  
+Improve line solving algorithm.  
+####Secondary
+Make sure all memory allocs will errorout if return pointer is null, and other similar things.  
+Change ExportSolution to export solutions into (a) text file(s) rather than print to console.  
