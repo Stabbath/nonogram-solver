@@ -113,11 +113,12 @@ void readBlockLenghtsRow(Puzzle* puzzle, FILE* fp) {
 		}
 
 		for (j = 0; j < puzzle->line[ROW][i].blockNum; j++) {	//read arraySize blocks
-			sscanf(buffer, " %d ", &(puzzle->line[ROW][i].block[j].length));	//get first integer
+				//get first integer
 			for (; !isspace(buffer[n]); n++) {	//replace all characters of the current word (ie the fetched integer) with whitespace
 				buffer[n] = ' ';						//the goal of this is to have the "first" integer be the next one, so that with a single 
 			}											//sscanf attribution we can read everything
 			n++;	//+1 to get starting position of next word (ie next integer) to start on next whitespace-filling loop	- this doesnt currently account for multiple spaces! need a function with a loop to skip all the spaces (or error out if more than a space is found)
+			sscanf(buffer, " %d ", &(puzzle->line[ROW][i].block[j].length));
 		}
 	}
 }
@@ -150,11 +151,13 @@ void readBlockLenghtsCol(Puzzle* puzzle, FILE* fp) {
 		}
 
 		for (j = 0; j < puzzle->line[COL][i].blockNum; j++) {	//read arraySize blocks
-			sscanf(buffer, " %d ", &(puzzle->line[COL][i].block[j].length));	//get first integer
+				//get first integer
 			for (; !isspace(buffer[n]); n++) {	//replace all characters of the current word (ie the fetched integer) with whitespace
 				buffer[n] = ' ';						//the goal of this is to have the "first" integer be the next one, so that with a single 
 			}											//sscanf attribution we can read everything
 			n++;	//+1 to get starting position of next word (ie next integer) to start on next whitespace-filling loop	- this doesnt currently account for multiple spaces! need a function with a loop to skip all the spaces (or error out if more than a space is found)
+			sscanf(buffer, " %d ", &(puzzle->line[COL][i].block[j].length));
+		
 		}
 	}
 }
