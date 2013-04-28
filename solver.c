@@ -62,13 +62,27 @@ void FreeLine(Line* line) {
 
 void FreePuzzle(Puzzle* puzzle) {
 
+	int i, j;
 
+	for(i=0; i< puzzle->length[ROW]; i++){
+		for(j = 0; j < puzzle->length[ROW]; j++){
+			free(puzzle->line[ROW][i].cells[j]);
+		}
+		free(puzzle->line[ROW][i].cells);
+		free(puzzle->line[ROW][i].block);
+		
+	}
+	for(i=0; i< puzzle->length[COL]; i++){
+		free(puzzle->line[COL][i].cells);
+		free(puzzle->line[COL][i].block);
+		
+	}
 	
-/*	free(puzzle->length);
 	free(puzzle->line[ROW]);
 	free(puzzle->line[COL]);
 	free(puzzle->line);
-	free(puzzle);*/
+	free(puzzle->length);
+	free(puzzle);
 }
 
 Puzzle* ClonePuzzle(Puzzle* old) {
