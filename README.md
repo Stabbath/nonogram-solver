@@ -10,6 +10,10 @@ In extreme situations, especially in cases where the puzzle is complex AND has m
 
 Currently, the algorithm is extremely incomplete: 'solving a line' simply means overlapping the leftmost and rightmost possible solutions of the line. The tracking of impossibilities is hardly done either! Still a lot of work to do.
 
+###Brute force
+Many puzzles may be impossible to solve by the regular line-solving algorithm, at which point we must resort to a brute force mechanism: we find a cell that hasn't been determined, and we test if for both values.
+At first this was done by fully cloning the puzzle, but this constitutes a huge memory expense, and there is a much better way that saves a lot of memory while barely adding any computing time: storing the pointers of this changed cell and any cell changed as a consequence in a list, and upon returning from the recursive call to solve the puzzle with this new guessed information, resetting the values of all those cells to unknown.
+
 ###Stacks
 ####Main
 The source code defines a stack structure, along with an interface for interacting with said structure. The need for this arose out of a simple concept: the more information we have on a line, the more information we're likely to get.
