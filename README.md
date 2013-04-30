@@ -12,7 +12,7 @@ Currently, the algorithm is extremely incomplete: 'solving a line' simply means 
 
 ###Line solver
 The following is a text representation/pseudocode of the current state of the algorithm being considered for a general line solver.  
-'
+`
 NextBlock: block = next, passed cells = 0	//next = first on the first time  
 A: read cell	//next = first on the first time  
 is it #?  
@@ -48,7 +48,7 @@ Uncentered:	//working on it
 
 //  
 Impossible: get out, no solution for this case  
-'
+`
 
 ###Brute force
 Many puzzles may be impossible to solve by the regular line-solving algorithm, at which point we must resort to a brute force mechanism: we find a cell that hasn't been determined, and we test if for both values.
