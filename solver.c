@@ -195,10 +195,10 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack, int coord) {
 	#ifdef BAD
 	ret = stackline(puzzle, line, stack, coord);
 	#else
-	int i;
+	int i, num;
 	ret = 0;
 	for (i = 0; i < puzzle->length[coord]; i++) {
-		int num = GetNumberOfPossibleBlocksForCell(Line->cells[i]);
+		num = GetNumberOfPossibleBlocksForCell(Line->cells[i]);
 		if (num == 1) {
 			if (/*num of valid cells around current cell (inclusive) < 2*block length*/ 1) {
 				Line* subline = CreateSubLine(line, start, end);	//line we wish to get a subline from, starting index to be first position, and index we want as the last position of the subline (both inclusive)
@@ -207,6 +207,7 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack, int coord) {
 		} else
 		if (num == 0) {
 			Line->cells[i]->state = STATE_BLNK;
+			ret++;
 		}
 	}
 	#endif
