@@ -10,6 +10,47 @@ In extreme situations, especially in cases where the puzzle is complex AND has m
 
 Currently, the algorithm is extremely incomplete: 'solving a line' simply means overlapping the leftmost and rightmost possible solutions of the line. The tracking of impossibilities is hardly done either! Still a lot of work to do.
 
+###Line solver
+The following is a text representation/pseudocode of the current state of the algorithm being considered for a general line solver.
+
+NextBlock: block = next, passed cells = 0	//next = first on the first time
+A: read cell	//next = first on the first time
+is it #?
+	NO: is it -?
+		NO: passed cells++
+			goto A
+		YES: goto A
+	YES: passed cells == 0?
+		NO: goto Uncentered
+		YES: goto Easy
+//
+Easy: read cell
+is it #?
+	YES: goto Easy
+	NO: is it -?
+		YES: cell index == block length?
+			NO: goto Impossible
+			YES: goto NextBlock
+Check:	NO: cell index == block length?
+			YES: read cell
+				is it #?
+					YES: goto Impossible
+					NO: set to -
+						goto NextBlock
+			NO: read cell
+				is it -?
+					YES: goto Impossible
+					NO: set to #
+						goto Check
+//
+Uncentered:	//working on it
+
+
+//
+Impossible:
+get out, no solution for this case
+
+
 ###Brute force
 Many puzzles may be impossible to solve by the regular line-solving algorithm, at which point we must resort to a brute force mechanism: we find a cell that hasn't been determined, and we test if for both values.
 At first this was done by fully cloning the puzzle, but this constitutes a huge memory expense, and there is a much better way that saves a lot of memory while barely adding any computing time: storing the pointers of this changed cell and any cell changed as a consequence in a list, and upon returning from the recursive call to solve the puzzle with this new guessed information, resetting the values of all those cells to unknown.
