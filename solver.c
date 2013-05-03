@@ -132,19 +132,26 @@ void WIP_solveline(Puzzle* puzzle, Line* line, int x) {
 
 //note: check to make sure that sum of blocks + blanks is <= line length in getPuzzle: if a line is not, just quit since puzzle is impossible
 
-void FreeLine(Line* line) {
-
-}
-
 void FreePuzzle(Puzzle* puzzle) {
+	int i, j;
 
+	for (i = 0; i < puzzle->length[ROW]; i++){
+		for (j = 0; j < puzzle->length[COL]; j++){
+			free(puzzle->line[ROW][i].cells[j]);
+		}
+		free(puzzle->line[ROW][i].cells);
+		free(puzzle->line[ROW][i].block);
+	}
+	for (i = 0; i < puzzle->length[COL]; i++){
+		free(puzzle->line[COL][i].cells);
+		free(puzzle->line[COL][i].block);
+	}
 
-	
-/*	free(puzzle->length);
 	free(puzzle->line[ROW]);
 	free(puzzle->line[COL]);
 	free(puzzle->line);
-	free(puzzle);*/
+	free(puzzle->length);
+	free(puzzle);
 }
 
 Puzzle* ClonePuzzle(Puzzle* old) {
@@ -221,8 +228,9 @@ int stackline(Puzzle* puzzle, Line* line, Stack* stack, int coord) {
 		for (i = 0; i < length; i++) {
 			if (line->cells[i]->state == STATE_UNKN) {
 				line->cells[i]->state = STATE_BLNK;
-			} else {
-				return - puzzle->length[ROW] * puzzle->length[COL];	//impossible			
+			} else 
+			if (line->cells[i]->state == STATE_FULL) {
+				return - puzzle->length[ROW] * puzzle->length[COL];	//impossible
 			}
 		}
 		return length;
@@ -237,12 +245,11 @@ int stackline(Puzzle* puzzle, Line* line, Stack* stack, int coord) {
 		 * with (linelength - sum) unaffected cells both immediately before and after the cluster of # cells.*
 		 * There must also be 1 additional unaffected cell in between each cluster, for the mandatory - cell.*
 		 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-		int opCoord = (coord == ROW ? COL : ROW);
 		int n = 0;
 		int ret = 0;
-		i = length - sum;												//the first length - sum cells are unaffected, skip them
+		i = length - sum;												//the first (length - sum) cells are unaffected, skip them
 		while (n < line->blockNum) {
-			for (; i < line->block[n].length - (length - sum); i++) {	//the next blocksize - (linelength - sum) cells are full
+			for (; i < line->block[n].length - (length - sum); i++) {	//the next (blocksize - (linelength - sum)) cells are full
 				if (line->cells[i]->state == STATE_BLNK) {
 					return - puzzle->length[ROW] * puzzle->length[COL];	//impossible			
 				} else
@@ -251,7 +258,7 @@ int stackline(Puzzle* puzzle, Line* line, Stack* stack, int coord) {
 					ret++;
 				}
 			}
-			i += length - sum;											//the next length - sum cells are unaffected, skip them
+			i += length - sum;											//the next (length - sum) cells are unaffected, skip them
 			i++;														//1 more cell, for the mandatory space			
 			n++;														//next block
 		}
@@ -311,7 +318,7 @@ Cell* PickCell(Puzzle* puzzle) {
 }
 
 void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
-	while ((!IsStackEmpty(stack[ROW]) || !IsStackEmpty(stack[COL])) && unsolvedCellCount > 0) {
+	while (/*(!IsStackEmpty(stack[ROW]) || !IsStackEmpty(stack[COL])) &&*/ unsolvedCellCount > 0) {
 		if (!IsStackEmpty(stack[ROW])) {
 			unsolvedCellCount -= solveline(puzzle, Pop(stack[ROW]), stack[COL], ROW);		
 		} else {
@@ -380,3 +387,5 @@ int main (int n, char** args) {
 	
 	return 0;	
 }
+
+//		int opCoord = (coord == ROW ? COL : ROW);
