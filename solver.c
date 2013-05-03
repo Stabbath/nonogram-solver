@@ -4,6 +4,136 @@
 #include "stacks.h"
 #include "solver.h"
 
+//NOTE: these functions can be merged, with 'blockid' being incremented based on which check
+//we want. Would also allow for checks with blockid + n, for any n
+//also, there is no need for the 'i' var
+
+/*can all remaining blocks and spaces (including the current block)
+  fit after the current cell?*/
+int checkA(Line* line, int blockid, int unkns, int index, int length) {
+	int i, count = 0;
+	for (i = blockid; i < line->blockNum; i++) count += 1 + line->block[i].length;
+	count--; //because we considered 1 space too many
+	
+	if (count < (length - 1) - index) {	//means we can't fit all the blocks and spaces
+		return 0;
+	}
+	return 1;
+}
+
+/*can all remaining blocks and spaces (EXCLUDING the current block)
+  fit after the current cell?*/
+int checkAtilde(Line* line, int blockid, int unkns, int index, int length) {
+	int i, count = 0;
+	for (i = blockid + 1; i < line->blockNum; i++) count += 1 + line->block[i].length;
+	count--; //because we considered 1 space too many
+	
+	if (count < (length - 1) - index) {	//means we can't fit all the blocks and spaces
+		return 0;
+	}
+	return 1;
+}
+
+#define NextBlock! curBlock++; unknCount=0; fullCount=0;
+
+void WIP_solveline(Puzzle* puzzle, Line* line, int x) {
+	int curBlock = 0;
+	int solvedCells = 0;
+	int unknCount = 0;
+	int fullCount = 0;
+	int i;
+	
+	for (i = 0; i < puzzle->length[x]; i++) {	//we're going to go through every cell in the line
+		if (line->cells[i]->state == STATE_FULL) { //== '#' ?
+			fullCount++;
+			if (unknCount == 0) {
+				for (;line->cells[i]->state == STATE_FULL; i++) {
+					fullCount++;
+					if (fullCount > line->block[curBlock].length) {
+						//impossible
+					}
+				}
+				
+				if (line->cells[i]->state == STATE_BLNK) {	//ended by a '-' ?
+					if (fullCount == line->block[curBlock].length) {
+						NextBlock!
+						continue;
+					} else {
+						//impossible
+					}
+				} else {	//ended by a '?' ?
+					if (fullCount == line->block[curBlock].length) {	//append '-' and finish block
+						line->cells[i]->state = STATE_BLNK;
+						solvedCells++;
+					} else {
+						while (fullCount != line->block[curBlock].length) {	//finish the block
+							if (line->cells[i]->state == STATE_FULL) {
+								fullCount++;
+							} else 
+							if (line->cells[i]->state == STATE_BLNK) {
+								//impossible
+							} else {
+								fullCount++;
+								solvedCells++;
+								line->cells[i]->state = STATE_FULL;
+							}
+							i++;
+						}
+					}
+					NextBlock!
+					continue;
+				}		
+			} else {
+				//not sure yet, complex shit
+				//
+				//
+			}
+		} else
+		if (line->cells[i]->state == STATE_BLNK) {	//== '-' ?
+			if (unknCount == 0) { //passed cells == 0?
+				
+			} else {
+				if (unknCount < line->block[curBlock].length) {	//passed cells < block size?
+					if (checkA(line, curBlock, unknCount, i, puzzle->length[x]) {
+						//read cells backwards as long as they're unknown, set to BLNK, then goto readcell
+						continue;	//goto next cell
+					} else {
+						//impossible
+						break;
+					}
+				} else {
+					if (checkA(line, curBlock, unknCount, i, puzzle->length[x]) {
+						//not sure yet, complex shit
+						//
+						//
+					} else {
+						if (checkAtilde(line, curBlock, unknCount, i, puzzle->length[x])) {
+							//check difference between passed cells and block length,
+							//stack the block and fill a few #'s
+							//NOTE: if passed cells >> blocksize, we probably have several blocks in this
+							//space, need to do check to see which blocks can/must fit in this space, which
+							//can/must fit afterward, and stack them
+							NextBlock!
+							continue;
+						} else {
+							//impossible
+							break;
+						}
+					}
+				}
+			}
+		} else {	//== '?' ?
+			unknCount++;
+			//careful if passed cells >> block length
+			continue;
+		}
+	}
+}
+
+
+
+
+
 //note: check to make sure that sum of blocks + blanks is <= line length in getPuzzle: if a line is not, just quit since puzzle is impossible
 
 Line* GetLeftmost(Line* old, int length) {
