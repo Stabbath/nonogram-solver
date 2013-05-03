@@ -210,46 +210,55 @@ int getLengthOfLargestBlock(Line* line) {
 int stackline(Puzzle* puzzle, Line* line, Stack* stack, int coord) {
 	int sum = getMinSumOfBlocksAndBlanks(line);
 	int cap = getLengthOfLargestBlock(line);
+	int length = puzzle->length[coord];
 	
-	if (sum > puzzle->length[coord]) {
-		return - puzzle->length[ROW] * puzzle->length[COL];
+	if (sum > length) {
+		return - puzzle->length[ROW] * puzzle->length[COL];	//impossible
 	}
 	
-	int i, n;
+	int i;
 	if (sum == 0) {	//means the whole line has blanks (special case)
-		for (i = 0, n = 0; i < puzzle->length[coord]; i++) {
+		for (i = 0; i < length; i++) {
 			if (line->cells[i]->state == STATE_UNKN) {
 				line->cells[i]->state = STATE_BLNK;
-				n++;
+			} else {
+				return - puzzle->length[ROW] * puzzle->length[COL];	//impossible			
 			}
 		}
-		return n;
+		return length;
 	} else
-	if (/*puzzle->length[coord] == sum*/1) {	//means the right-most arrangement is the same as the left-most: full solution is known (special case)
+	if (/*length == sum*/0) {	//means the right-most arrangement is the same as the left-most: full solution is known (special case)
 //		printf("\t\tnot 0\n");//go through block lengths
-	} //else - commented since there's no code for the special case yet*/
-	if (puzzle->length[coord] - sum < cap) {	//only situation in which stacking will do anything
-		Line* left = GetLeftmost(line, puzzle->length[coord]);
-		Line* right = GetRightmost(line, puzzle->length[coord]);
-		
+		return length;
+	} else
+	if (length - sum < cap) {	//only situation in which stacking will do anything
+		/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+		 * The logic here is this: for every block, we can identify (blocksize - (linelength - sum)) # cells,*
+		 * with (linelength - sum) unaffected cells both immediately before and after the cluster of # cells.*
+		 * There must also be 1 additional unaffected cell in between each cluster, for the mandatory - cell.*
+		 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 		int opCoord = (coord == ROW ? COL : ROW);
-		for (i = 0, n = 0; i < puzzle->length[coord]; i++) {
-			if (left->cells[i]->state == right->cells[i]->state) {
+		int n = 0;
+		int ret = 0;
+		i = length - sum;												//the first length - sum cells are unaffected, skip them
+		while (n < line->blockNum) {
+			for (; i < line->block[n].length - (length - sum); i++) {	//the next blocksize - (linelength - sum) cells are full
+				if (line->cells[i]->state == STATE_BLNK) {
+					return - puzzle->length[ROW] * puzzle->length[COL];	//impossible			
+				} else
 				if (line->cells[i]->state == STATE_UNKN) {
-					line->cells[i]->state = left->cells[i]->state;
-					n++;
-					if (!IsInStack(stack, &puzzle->line[opCoord][i]))
-						Push(stack, (void*) &puzzle->line[opCoord][i]);
+					line->cells[i]->state == STATE_FULL;
+					ret++;
 				}
 			}
+			i += length - sum;											//the next length - sum cells are unaffected, skip them
+			i++;														//1 more cell, for the mandatory space			
+			n++;														//next block
 		}
-		FreeLine(left);
-		FreeLine(right);
-		return n;
+		return ret;
 	}	
 	return 0;
 }
-
 
 Line* CreateSubLine(Line* line, int start, int end) {
 	Line* subline = (Line*) malloc((end-start)*sizeof(Cell*));
