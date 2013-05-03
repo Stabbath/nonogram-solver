@@ -130,61 +130,7 @@ void WIP_solveline(Puzzle* puzzle, Line* line, int x) {
 	}
 }
 
-
-
-
-
 //note: check to make sure that sum of blocks + blanks is <= line length in getPuzzle: if a line is not, just quit since puzzle is impossible
-
-Line* GetLeftmost(Line* old, int length) {
-	Line* line = CloneLine(old, length);
-	
-	int i, j;
-	for (i = 0, j = 0; i < line->blockNum; i++) {
-		while (j < line->block[i].length)
-			line->cells[j++]->state = STATE_FULL;
-		if (j < length)
-			line->cells[j++]->state = STATE_BLNK;
-	}
-	while (j < length)
-		line->cells[j++]->state = STATE_UNKN;
-	
-	return line;
-}
-
-Line* GetRightmost(Line* old, int length) {
-	Line* line = CloneLine(old, length);
-
-	int i, j = 0;
-	int offset = length - getMinSumOfBlocksAndBlanks(line);
-	while (j < offset)
-		line->cells[j++]->state = STATE_UNKN;
-
-	for (i = 0; i < line->blockNum; i++) {
-		while (j - offset < line->block[i].length)
-			line->cells[j++]->state = STATE_FULL;
-		if (j < length)
-			line->cells[j++]->state = STATE_BLNK;
-	}
-	
-	return line;
-}
-
-Line* CloneLine(Line* old, int length) {
-	Line* new = (Line*) malloc(sizeof(Line));
-	int i;
-	new->blockNum = old->blockNum;
-	new->block = (Block*) malloc(new->blockNum*sizeof(Block));
-	for (i = 0; i < new->blockNum; i++) {
-		new->block[i] = old->block[i];
-	}
-	new->cells = (Cell**) malloc(length*sizeof(Cell*));
-	for (i = 0; i < length; i++) {
-		new->cells[i] = (Cell*) malloc(sizeof(Cell));
-		new->cells[i]->state = old->cells[i]->state;
-	}
-	return new;
-}
 
 void FreeLine(Line* line) {
 
@@ -261,11 +207,10 @@ int getLengthOfLargestBlock(Line* line) {
 	return size;
 }
 
-//is there a point in having these special cases?
 int stackline(Puzzle* puzzle, Line* line, Stack* stack, int coord) {
 	int sum = getMinSumOfBlocksAndBlanks(line);
 	int cap = getLengthOfLargestBlock(line);
-			
+	
 	if (sum > puzzle->length[coord]) {
 		return - puzzle->length[ROW] * puzzle->length[COL];
 	}

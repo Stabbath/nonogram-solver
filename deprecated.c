@@ -1,3 +1,58 @@
+//solver.c
+
+Line* GetLeftmost(Line* old, int length) {
+	Line* line = CloneLine(old, length);
+	
+	int i, j;
+	for (i = 0, j = 0; i < line->blockNum; i++) {
+		while (j < line->block[i].length)
+			line->cells[j++]->state = STATE_FULL;
+		if (j < length)
+			line->cells[j++]->state = STATE_BLNK;
+	}
+	while (j < length)
+		line->cells[j++]->state = STATE_UNKN;
+	
+	return line;
+}
+
+Line* GetRightmost(Line* old, int length) {
+	Line* line = CloneLine(old, length);
+
+	int i, j = 0;
+	int offset = length - getMinSumOfBlocksAndBlanks(line);
+	while (j < offset)
+		line->cells[j++]->state = STATE_UNKN;
+
+	for (i = 0; i < line->blockNum; i++) {
+		while (j - offset < line->block[i].length)
+			line->cells[j++]->state = STATE_FULL;
+		if (j < length)
+			line->cells[j++]->state = STATE_BLNK;
+	}
+	
+	return line;
+}
+
+Line* CloneLine(Line* old, int length) {
+	Line* new = (Line*) malloc(sizeof(Line));
+	int i;
+	new->blockNum = old->blockNum;
+	new->block = (Block*) malloc(new->blockNum*sizeof(Block));
+	for (i = 0; i < new->blockNum; i++) {
+		new->block[i] = old->block[i];
+	}
+	new->cells = (Cell**) malloc(length*sizeof(Cell*));
+	for (i = 0; i < length; i++) {
+		new->cells[i] = (Cell*) malloc(sizeof(Cell));
+		new->cells[i]->state = old->cells[i]->state;
+	}
+	return new;
+}
+
+
+
+
 //solverio.c
 
 void getBlockLengths(Puzzle* puzzle, FILE* fp, int x) {
