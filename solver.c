@@ -272,7 +272,7 @@ int stackline(Puzzle* puzzle, Line* line, Stack* stack, int coord) {
 		while (n < line->blockNum) {
 			for (; i < line->block[n].length - (length - sum); i++) {	//the next (blocksize - (linelength - sum)) cells are full
 				if (line->cells[i]->state == STATE_BLNK) {
-					return - puzzle->length[ROW] * puzzle->length[COL];	//impossible			
+					return - puzzle->length[ROW] * puzzle->length[COL];	//impossible
 				} else
 				if (line->cells[i]->state == STATE_UNKN) {
 					line->cells[i]->state = STATE_FULL;
@@ -280,7 +280,7 @@ int stackline(Puzzle* puzzle, Line* line, Stack* stack, int coord) {
 				}
 			}
 			i += length - sum;											//the next (length - sum) cells are unaffected, skip them
-			i++;														//1 more cell, for the mandatory space			
+			i++;														//1 more cell, for the mandatory space
 			n++;														//next block
 		}
 		return ret;
@@ -345,12 +345,14 @@ Cell* PickCell(Puzzle* puzzle) {
 }
 
 void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
-	while ((!IsStackEmpty(stack[ROW]) || !IsStackEmpty(stack[COL])) && unsolvedCellCount > 0) {
+	while (!(IsStackEmpty(stack[ROW]) && IsStackEmpty(stack[COL])) && unsolvedCellCount > 0)) {
 		if (!IsStackEmpty(stack[ROW])) {
-			unsolvedCellCount -= solveline(puzzle, Pop(stack[ROW]), stack[COL], ROW);		
-		} else {
+			unsolvedCellCount -= solveline(puzzle, Pop(stack[ROW]), stack[COL], ROW);
+		}
+		if (!IsStackEmpty(stack[COL])) {
 			unsolvedCellCount -= solveline(puzzle, Pop(stack[COL]), stack[ROW], COL);
 		}
+		if ( break;
 	}
 	
 	ExportSolution(puzzle);
