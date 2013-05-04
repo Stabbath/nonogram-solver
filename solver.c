@@ -352,6 +352,7 @@ void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
 		if (!IsStackEmpty(stack[COL])) {
 			unsolvedCellCount -= solveline(puzzle, Pop(stack[COL]), stack[ROW], COL);
 		}
+		if ( break;
 	}
 	
 	ExportSolution(puzzle);
