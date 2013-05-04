@@ -215,12 +215,9 @@ int getLengthOfLargestBlock(Line* line) {
 }
 
 int stackline(Puzzle* puzzle, Line* line, Stack* stack, int coord) {
-	debp("stac\n");
 	int sum = getMinSumOfBlocksAndBlanks(line);
 	int cap = getLengthOfLargestBlock(line);
 	int length = puzzle->length[coord];
-	
-	debp("t\n");
 	
 	if (sum > length) {
 		return - puzzle->length[ROW] * puzzle->length[COL];	//impossible
@@ -242,7 +239,6 @@ int stackline(Puzzle* puzzle, Line* line, Stack* stack, int coord) {
 	if (length == sum) {	//means full solution is known (special case)
 		int i, j, l = 0;
 		for (i = 0; i < line->blockNum; i++, l++) {
-			printf("%d\n",l);
 			for (j = 0; j < line->block[i].length; j++, l++) {
 				if (line->cells[l]->state == STATE_UNKN) {
 					line->cells[l]->state = STATE_FULL;
@@ -252,7 +248,6 @@ int stackline(Puzzle* puzzle, Line* line, Stack* stack, int coord) {
 					return - puzzle->length[ROW] * puzzle->length[COL];	//impossible
 				}
 			}
-			printf("%d\n",l);
 			
 			if (l < length) {
 				if (line->cells[l]->state == STATE_UNKN) {
@@ -272,7 +267,6 @@ int stackline(Puzzle* puzzle, Line* line, Stack* stack, int coord) {
 		 * with (linelength - sum) unaffected cells both immediately before and after the cluster of # cells.*
 		 * There must also be 1 additional unaffected cell in between each cluster, for the mandatory - cell.*
 		 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-		debp("len - sum < cap\n");
 		int n = 0;
 		i = length - sum;												//the first (length - sum) cells are unaffected, skip them
 		while (n < line->blockNum) {
@@ -289,7 +283,6 @@ int stackline(Puzzle* puzzle, Line* line, Stack* stack, int coord) {
 			i++;														//1 more cell, for the mandatory space			
 			n++;														//next block
 		}
-		debp("len - sum < cap out\n");
 		return ret;
 	}	
 	return 0;
@@ -354,12 +347,8 @@ Cell* PickCell(Puzzle* puzzle) {
 void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
 	while ((!IsStackEmpty(stack[ROW]) || !IsStackEmpty(stack[COL])) && unsolvedCellCount > 0) {
 		if (!IsStackEmpty(stack[ROW])) {
-			static int i = 0;
-			debp("row %d", ++i);
 			unsolvedCellCount -= solveline(puzzle, Pop(stack[ROW]), stack[COL], ROW);		
 		} else {
-			static int i = 0;
-			debp("col %d", ++i);
 			unsolvedCellCount -= solveline(puzzle, Pop(stack[COL]), stack[ROW], COL);
 		}
 	}
