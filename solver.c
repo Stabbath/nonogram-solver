@@ -242,6 +242,7 @@ int stackline(Puzzle* puzzle, Line* line, Stack* stack, int coord) {
 	if (length == sum) {	//means full solution is known (special case)
 		int i, j, l = 0;
 		for (i = 0; i < line->blockNum; i++, l++) {
+			printf("%d\n",l);
 			for (j = 0; j < line->block[i].length; j++, l++) {
 				if (line->cells[l]->state == STATE_UNKN) {
 					line->cells[l]->state = STATE_FULL;
@@ -251,13 +252,16 @@ int stackline(Puzzle* puzzle, Line* line, Stack* stack, int coord) {
 					return - puzzle->length[ROW] * puzzle->length[COL];	//impossible
 				}
 			}
+			printf("%d\n",l);
 			
-			if (line->cells[l]->state == STATE_UNKN) {
-				line->cells[l]->state = STATE_BLNK;
-				ret++;
-			} else
-			if (line->cells[l]->state == STATE_FULL) {	//next cell must be blnk
-				return - puzzle->length[ROW] * puzzle->length[COL];		//impossible
+			if (l < length) {
+				if (line->cells[l]->state == STATE_UNKN) {
+					line->cells[l]->state = STATE_BLNK;
+					ret++;
+				} else
+				if (line->cells[l]->state == STATE_FULL) {	//next cell must be blnk
+					return - puzzle->length[ROW] * puzzle->length[COL];		//impossible
+				}
 			}
 		}
 		return ret;
