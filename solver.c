@@ -226,21 +226,41 @@ int stackline(Puzzle* puzzle, Line* line, Stack* stack, int coord) {
 		return - puzzle->length[ROW] * puzzle->length[COL];	//impossible
 	}
 	
-	int i;
+	int i, ret = 0;
 	if (sum == 0) {	//means the whole line has blanks (special case)
 		for (i = 0; i < length; i++) {
 			if (line->cells[i]->state == STATE_UNKN) {
 				line->cells[i]->state = STATE_BLNK;
+				ret++;
 			} else 
 			if (line->cells[i]->state == STATE_FULL) {
 				return - puzzle->length[ROW] * puzzle->length[COL];	//impossible
 			}
+			return ret;
 		}
-		return length;
 	} else
-	if (/*length == sum*/0) {	//means the right-most arrangement is the same as the left-most: full solution is known (special case)
-//		printf("\t\tnot 0\n");//go through block lengths
-		return length;
+	if (length == sum) {	//means full solution is known (special case)
+		int i, j, l = 0;
+		for (i = 0; i < line->blockNum; i++, l++) {
+			for (j = 0; j < line->block[i].length; j++, l++) {
+				if (line->cells[l]->state == STATE_UNKN) {
+					line->cells[l]->state = STATE_FULL;
+					ret++;
+				} else
+				if (line->cells[l]->state == STATE_BLNK) {
+					return - puzzle->length[ROW] * puzzle->length[COL];	//impossible
+				}
+			}
+			
+			if (line->cells[l]->state == STATE_UNKN) {
+				line->cells[l]->state = STATE_BLNK;
+				ret++;
+			} else
+			if (line->cells[l]->state == STATE_FULL) {	//next cell must be blnk
+				return - puzzle->length[ROW] * puzzle->length[COL];		//impossible
+			}
+		}
+		return ret;
 	} else
 	if (length - sum < cap) {	//only situation in which stacking will do anything
 		/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -250,7 +270,6 @@ int stackline(Puzzle* puzzle, Line* line, Stack* stack, int coord) {
 		 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 		debp("len - sum < cap\n");
 		int n = 0;
-		int ret = 0;
 		i = length - sum;												//the first (length - sum) cells are unaffected, skip them
 		while (n < line->blockNum) {
 			for (; i < line->block[n].length - (length - sum); i++) {	//the next (blocksize - (linelength - sum)) cells are full
@@ -287,10 +306,13 @@ int GetNumberOfPossibleBlocksForCell(Cell* cell) {
 #define BAD
 
 int solveline(Puzzle* puzzle, Line* line, Stack* stack, int coord) {
-	int ret; static int i = 0;
+	int ret;
+
+
 	#ifdef BAD
-	ret = stackline(puzzle, line, stack, coord);	
-	debp("done: %d\n", ++i);
+	ret = stackline(puzzle, line, stack, coord);
+
+
 	#else
 	int i, num;
 	ret = 0;
@@ -308,6 +330,8 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack, int coord) {
 		}
 	}
 	#endif
+
+
 	return ret;
 }
 
