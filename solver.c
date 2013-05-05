@@ -12,6 +12,12 @@
   * S - sum of blocks + blanks in line		*
   * * * * * * * * * * * * * * * * * * * * * */
 
+ /* * * * * * * * * * * * * * * * * * * * * *
+  * TODO: Finishsh line solver				*
+  *	 && Brute force change tracker/reverter *
+  * * * * * * * * * * * * * * * * * * * * * */
+
+
 
 //NOTE: these functions can be merged, with 'blockid' being incremented based on which check
 //we want. Would also allow for checks with blockid + n, for any n
@@ -46,7 +52,7 @@ int checkAtilde(Line* line, int blockid, int unkns, int index, int length) {
 
 #define NextBlock curBlock++;unknCount=0;fullCount=0;
 
-void solveline(Puzzle* puzzle, Line* line, int x) {
+int solveline(Puzzle* puzzle, Line* line, int x) {
 	int curBlock = 0;
 	int solvedCells = 0;
 	int unknCount = 0;
@@ -95,7 +101,7 @@ void solveline(Puzzle* puzzle, Line* line, int x) {
 				}		
 			} else {
 				//not sure yet, complex shit
-				//
+				//TODO
 				//
 			}
 		} else
@@ -114,7 +120,7 @@ void solveline(Puzzle* puzzle, Line* line, int x) {
 				} else {
 					if (checkA(line, curBlock, unknCount, i, puzzle->length[x])) {
 						//not sure yet, complex shit
-						//
+						//TODO
 						//
 					} else {
 						if (checkAtilde(line, curBlock, unknCount, i, puzzle->length[x])) {
