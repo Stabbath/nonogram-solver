@@ -46,7 +46,7 @@ int checkAtilde(Line* line, int blockid, int unkns, int index, int length) {
 
 #define NextBlock curBlock++;unknCount=0;fullCount=0;
 
-void WIP_solveline(Puzzle* puzzle, Line* line, int x) {
+void solveline(Puzzle* puzzle, Line* line, int x) {
 	int curBlock = 0;
 	int solvedCells = 0;
 	int unknCount = 0;
@@ -362,40 +362,9 @@ int stackline(Line* line, int length) {	//O(N) + max((O(L), O(N*B), O(N*(B-L+S))
 #undef IMPOSSIBLE
 
 
-
-
-Line* CreateSubLine(Line* line, int start, int end) {
-	Line* subline = (Line*) malloc((end-start)*sizeof(Cell*));
-	
-	return subline;
-}
-
 int GetNumberOfPossibleBlocksForCell(Cell* cell) {
 	//implementation depends on what we decide on the structures
 	return 0;
-}
-
-
-int solveline(Puzzle* puzzle, Line* line, Stack* stack, int coord) {
-	int ret;
-
-/*	int i, num;*/
-	ret = 0;/*
-	for (i = 0; i < puzzle->length[coord]; i++) {
-		num = GetNumberOfPossibleBlocksForCell(line->cells[i]);
-		if (num == 1) {
-			if (/*num of valid cells around current cell (inclusive) < 2*block length*//* 1) {
-				Line* subline = CreateSubLine(line, start, end);	//line we wish to get a subline from, starting index to be first position, and index we want as the last position of the subline (both inclusive)
-				ret = stackline(subline);
-			}
-		} else
-		if (num == 0) {
-			Line->cells[i]->state = STATE_BLNK;
-			ret++;
-		}
-	}
-*/
-	return ret;
 }
 
 Cell* PickCell(Puzzle* puzzle) {
