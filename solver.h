@@ -49,6 +49,8 @@ provavelmente vão ser precisas mais estruturas dentro da estrutura puzzle, para
 #define COL 1
 #define AXES 2
 
+#define DEBUG
+
 typedef struct _cell {
 	char state;		//STATE_FULL, STATE_BLNK, STATE_UNKN
 } Cell;

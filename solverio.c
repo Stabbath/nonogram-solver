@@ -6,8 +6,15 @@
 #include "stacks.h"
 #include "solver.h"
 
-#define DEBUG
 
+/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+  * debp: 					debug print! if DEBUG is defined, will print a string just like printf would*
+  *							but flushes the output stream straight away.								*
+  *																										*
+  * @param char* :			string with text to be written to stdout									*
+  * @param ... : 			additional args based on format												*
+  *	@noreturn																							*
+  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 void debp(const char* format, ... ) {
 	#ifdef DEBUG
 		va_list args;
@@ -18,64 +25,78 @@ void debp(const char* format, ... ) {
 	#endif
 }
 
-void ExportConfig(Puzzle* puzzle) {
+
+
+/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+  * ExportConfig: 			Exports a puzzle's config in the same format as the input one. 			*
+  *																										*
+  * @param Puzzle* :		puzzle to get config from													*
+  * @param FILE* : 			output stream																*
+  *	@noreturn																							*
+  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+void ExportConfig(Puzzle* puzzle, FILE* stream) {
 	int i, j;
-	printf("%d\n", puzzle->length[ROW]);
-	printf("%d\n", puzzle->length[COL]);
-	printf("\n");
+	fprintf(stream, "%d\n", puzzle->length[ROW]);
+	fprintf(stream, "%d\n", puzzle->length[COL]);
+	fprintf(stream, "\n");
 	for (j = 0; j < puzzle->length[ROW]; j++) {
-		printf("%d ", puzzle->line[ROW][j].blockNum);
+		fprintf(stream, "%d ", puzzle->line[ROW][j].blockNum);
 		for (i = 0; i < puzzle->line[ROW][j].blockNum; i++) {
-			printf("%d ", puzzle->line[ROW][j].block[i].length);
+			fprintf(stream, "%d ", puzzle->line[ROW][j].block[i].length);
 		}
-		printf("\n");
+		fprintf(stream, "\n");
 	}
-	printf("\n");
+	fprintf(stream, "\n");
 	for (j = 0; j < puzzle->length[COL]; j++) {
-		printf("%d ", puzzle->line[COL][j].blockNum);
+		fprintf(stream, "%d ", puzzle->line[COL][j].blockNum);
 		for (i = 0; i < puzzle->line[COL][j].blockNum; i++) {
-			printf("%d ", puzzle->line[COL][j].block[i].length);
+			fprintf(stream, "%d ", puzzle->line[COL][j].block[i].length);
 		}
-		printf("\n");
+		fprintf(stream, "\n");
 	}
-	printf("\n");
+	fprintf(stream, "\n");
 }
 
-void ExportSolution(Puzzle* puzzle) {
+
+
+/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+  * ExportSolution: 		Exports a puzzle's solution as a grid of ASCII characters (#, -, ?)			*
+  *																										*
+  * @param Puzzle* :		puzzle to get config from													*
+  * @param FILE* : 			output stream																*
+  *	@noreturn																							*
+  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+void ExportSolution(Puzzle* puzzle, FILE* stream) {
 	static int solutions = 0;
 
 	if (puzzle == NULL && solutions == 0) {
 		//there are no solutions
 	} else {
+		#ifdef DEBUG
 		ExportConfig(puzzle);
-	
+		#endif
+		
 		int i, j;
 		for (j = 0; j < puzzle->length[ROW]; j++) {
 			for (i = 0; i < puzzle->length[COL]; i++) {
-				printf("%c", puzzle->line[COL][i].cells[j]->state);
+				fprintf(stream, "%c", puzzle->line[COL][i].cells[j]->state);
 			}
-			printf("\n");
+			fprintf(stream, "\n");
 		}
-		printf("\n");
-		
-/*		printf("\n");	//to make sure rows and columns point to the same cells
-		for (j = 0; j < puzzle->length[COL]; j++) {
-			for (i = 0; i < puzzle->length[ROW]; i++) {
-				printf("%d ", (int) puzzle->line[ROW][i].cells[j]);
-			}
-			printf("\n");
-		}
-
-		printf("\n");
-		for (j = 0; j < puzzle->length[COL]; j++) {
-			for (i = 0; i < puzzle->length[ROW]; i++) {
-				printf("%d ", (int) puzzle->line[COL][j].cells[i]);
-			}
-			printf("\n");
-		}*/
+		fprintf(stream, "\n");
 	}
 }
 
+
+
+/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+  * getDimension: 			Macro function to fetch a puzzle's row|column lengths.			 			*
+  *																										*
+  * @param Puzzle* :		puzzle we're loading														*
+  * @param FILE* : 			input stream																*
+  * @param int : 			ROW|COL																		*
+  *	@noreturn																							*
+  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 void getDimension(Puzzle* puzzle, FILE* fp, int coord) {
 	char buffer[BUFFERSIZE];
 	if (fgets(buffer, sizeof(buffer), fp) == NULL)
@@ -84,6 +105,17 @@ void getDimension(Puzzle* puzzle, FILE* fp, int coord) {
 		errorout(ERROR_BADFORMAT, "Row number not an integer.");
 }
 
+
+//TODO: mix readBlockLengths(Row|Col) into one
+
+/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+  * readBlockLengths:	 	Macro function to fetch a puzzle's (row|column)'s block lengths.			*
+  *																										*
+  * @param Puzzle* :		puzzle we're loading														*
+  * @param FILE* : 			input stream																*
+  * @param int :			ROW|COL																		*
+  *	@noreturn																							*
+  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 void readBlockLenghtsRow(Puzzle* puzzle, FILE* fp) {
 	int i, j, n;
 	char buffer[BUFFERSIZE];
@@ -161,19 +193,44 @@ void readBlockLenghtsCol(Puzzle* puzzle, FILE* fp) {
 	}
 }
 
+
+
+/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+  * errorout: 				prints an error message and exits with code 1					 			*
+  *																										*
+  * @param char* :			string for general macro-defined error type message							*
+  * @param char* : 			string for more specific details on error									*
+  *	@noreturn																							*
+  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 void errorout(char* type, char* details) {
 	printf("%s %s\n", type, details);
 	exit(1);
 }
 
+
+
+/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+  * checkblankln: 			checks if there is a next line and if it contains nothing but "\n"			*
+  *																										*
+  * @param FILE* : 			input stream																*
+  *	@noreturn																							*
+  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 void checkblankln(FILE* fp) {
 	char buffer[BUFFERSIZE];
 	if (fgets(buffer, sizeof(buffer), fp) == NULL)	//do we even have a line to read?
 		errorout(ERROR_BADFORMAT, "File ended unexpectedly (was expecting a blank line).");
 	if (strcmp(buffer, "\n") != 0)	//line is there but not blank!
-		errorout(ERROR_BADFORMAT, "Blank line was not blank.");
+		errorout(ERROR_BADFORMAT, "Blank line was not blank (check for whitespace other than \\n).");
 }
 
+
+
+/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+  * getPuzzle: 				Macro function for reading and storing a puzzle's configuration				*
+  *																										*
+  * @param char* : 			name of puzzle file to get config from										*
+  *	@return Puzzle* :		pointer to puzzle structure with the fetched configuration					*
+  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 Puzzle* getPuzzle(char* name) {
 	FILE* fp = fopen(name, "r");
 	if (fp == NULL)	errorout(ERROR_404, "Wrong directory or name for puzzle config.");
@@ -191,9 +248,9 @@ Puzzle* getPuzzle(char* name) {
 	if ((puzzle->line[COL] = (Line*) malloc(puzzle->length[ROW]*sizeof(Line))) == NULL)	errorout(ERROR_MEM, "Could not create cols.");
 
 	readBlockLenghtsRow(puzzle, fp);	//next L lines have row block lengths
-	checkblankln(fp);				//get (3+L+1)th line - must be blank
+	checkblankln(fp);					//get (3+L+1)th line - must be blank
 	readBlockLenghtsCol(puzzle, fp);	//next C lines have col block lengths
-	checkblankln(fp);				//get (3+L+1+C+1)th line - must be blank
+	checkblankln(fp);					//get (3+L+1+C+1)th line - must be blank
 
 	char buffer[BUFFERSIZE];
 	if (fgets(buffer, sizeof(buffer), fp) != NULL) {	//file must end after previous blank line
