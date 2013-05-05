@@ -71,7 +71,7 @@ typedef struct _puzzle {
 } Puzzle;
 
 void debp(const char*, ... );
-void ExportSolution(Puzzle*);
+void ExportSolution(Puzzle*, FILE*);
 void getDimension(Puzzle*, FILE*, int);
 void getBlockLengths(Puzzle*, FILE*, int);
 void errorout(char* type, char* details);

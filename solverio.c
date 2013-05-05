@@ -73,7 +73,7 @@ void ExportSolution(Puzzle* puzzle, FILE* stream) {
 		//there are no solutions
 	} else {
 		#ifdef DEBUG
-		ExportConfig(puzzle);
+		ExportConfig(puzzle, stdout);
 		#endif
 		
 		int i, j;

@@ -50,9 +50,11 @@ int checkAtilde(Line* line, int blockid, int unkns, int index, int length) {
 }
 
 
-#define NextBlock curBlock++;unknCount=0;fullCount=0;
 
-int solveline(Puzzle* puzzle, Line* line, int x) {
+#define NextBlock curBlock++;unknCount=0;fullCount=0;
+#define IMPOSSIBLE	-1
+int solveline(Puzzle* puzzle, Line* line, Stack* stack, int x) {
+	int y = (x == ROW ? COL : ROW);
 	int curBlock = 0;
 	int solvedCells = 0;
 	int unknCount = 0;
@@ -66,7 +68,7 @@ int solveline(Puzzle* puzzle, Line* line, int x) {
 				for (;line->cells[i]->state == STATE_FULL; i++) {
 					fullCount++;
 					if (fullCount > line->block[curBlock].length) {
-						//impossible
+						return IMPOSSIBLE; //impossible
 					}
 				}
 				
@@ -75,7 +77,7 @@ int solveline(Puzzle* puzzle, Line* line, int x) {
 						NextBlock
 						continue;
 					} else {
-						//impossible
+						return IMPOSSIBLE;	//impossible
 					}
 				} else {	//ended by a '?' ?
 					if (fullCount == line->block[curBlock].length) {	//append '-' and finish block
@@ -87,7 +89,7 @@ int solveline(Puzzle* puzzle, Line* line, int x) {
 								fullCount++;
 							} else 
 							if (line->cells[i]->state == STATE_BLNK) {
-								//impossible
+								return IMPOSSIBLE;	//impossible
 							} else {
 								fullCount++;
 								solvedCells++;
@@ -112,10 +114,10 @@ int solveline(Puzzle* puzzle, Line* line, int x) {
 				if (unknCount < line->block[curBlock].length) {	//passed cells < block size?
 					if (checkA(line, curBlock, unknCount, i, puzzle->length[x])) {
 						//read cells backwards as long as they're unknown, set to BLNK, then goto readcell
+						//TODO
 						continue;	//goto next cell
 					} else {
-						//impossible
-						break;
+						return IMPOSSIBLE;	//impossible
 					}
 				} else {
 					if (checkA(line, curBlock, unknCount, i, puzzle->length[x])) {
@@ -129,21 +131,22 @@ int solveline(Puzzle* puzzle, Line* line, int x) {
 							//NOTE: if passed cells >> blocksize, we probably have several blocks in this
 							//space, need to do check to see which blocks can/must fit in this space, which
 							//can/must fit afterward, and stack them
+							//TODO
 							NextBlock
 							continue;
 						} else {
-							//impossible
-							break;
+							return IMPOSSIBLE;	//impossible
 						}
 					}
 				}
 			}
-		} else {	//== '?' ?
+		} else {	//== '?'
 			unknCount++;
-			//careful if passed cells >> block length
+			//careful if passed cells >> block length TODO
 			continue;
 		}
 	}
+	return solvedCells;
 }
 
 //note: check to make sure that sum of blocks + blanks is <= line length in getPuzzle: if a line is not, just quit since puzzle is impossible
@@ -154,8 +157,6 @@ int solveline(Puzzle* puzzle, Line* line, int x) {
   *																										*
   * @param Puzzle* :		puzzle to destroy															*
   *	@noreturn																							*
-  * 																									*
-  * @verbose : 				nothing to be verbose about													*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 void FreePuzzle(Puzzle* puzzle) {	//O(Lr*Lc) + O(Lc) = O((Lr+1)*Lc) = O(Lr*Lc)
 	int i, j;
@@ -179,47 +180,6 @@ void FreePuzzle(Puzzle* puzzle) {	//O(Lr*Lc) + O(Lc) = O((Lr+1)*Lc) = O(Lr*Lc)
 	free(puzzle);
 }
 
-Puzzle* ClonePuzzle(Puzzle* old) {
-	Puzzle* puzzle = (Puzzle*) malloc(sizeof(Puzzle));
-
-	puzzle->length = (int*) malloc(AXES*sizeof(int));
-	puzzle->length[ROW] = old->length[ROW];
-	puzzle->length[COL] = old->length[COL];
-	
-	puzzle->line = (Line**) malloc(AXES*sizeof(Line*));
-	puzzle->line[ROW] = (Line*) malloc(puzzle->length[ROW]*sizeof(Line));
-	puzzle->line[COL] = (Line*) malloc(puzzle->length[COL]*sizeof(Line));
-
-	int i, j;
-	for (i = 0; i < puzzle->length[ROW]; i++) {
-		puzzle->line[ROW][i].blockNum = old->line[ROW][i].blockNum;
-		puzzle->line[ROW][i].block = (Block*) malloc(puzzle->line[ROW][i].blockNum*sizeof(Block));
-		for (j = 0; j < puzzle->line[ROW][i].blockNum; j++) {
-			puzzle->line[ROW][i].block[j].length = old->line[ROW][i].block[j].length;
-		}
-
-		puzzle->line[ROW][i].cells = (Cell**) malloc(puzzle->length[COL]*sizeof(Cell*));
-		for (j = 0; j < puzzle->length[COL]; j++) {
-			puzzle->line[ROW][i].cells[j] = (Cell*) malloc(sizeof(Cell));
-			puzzle->line[ROW][i].cells[j]->state = old->line[ROW][i].cells[j]->state;
-		}
-	}
-	for (i = 0; i < puzzle->length[COL]; i++) {
-		puzzle->line[COL][i].blockNum = old->line[COL][i].blockNum;
-		puzzle->line[COL][i].block = (Block*) malloc(puzzle->line[COL][i].blockNum*sizeof(Block));
-		for (j = 0; j < puzzle->line[COL][i].blockNum; j++) {
-			puzzle->line[COL][i].block[j].length = old->line[COL][i].block[j].length;
-		}
-
-		puzzle->line[COL][i].cells = (Cell**) malloc(puzzle->length[ROW]*sizeof(Cell*));
-		for (j = 0; j < puzzle->length[ROW]; j++) {
-			puzzle->line[COL][i].cells[j] = puzzle->line[ROW][j].cells[i];
-		}
-	}
-	
-	return puzzle;
-}
-
 
 
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -228,8 +188,6 @@ Puzzle* ClonePuzzle(Puzzle* old) {
   *																										*
   * @param Line* :		line to get sum of																*
   *	@return int :		sum																				*
-  * 																									*
-  * @verbose : Nothing to be verbose about.																*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 int getMinSumOfBlocksAndBlanks(Line* line) {
 	int i, count;
@@ -249,8 +207,6 @@ int getMinSumOfBlocksAndBlanks(Line* line) {
   * 																									*
   * @param Line* :		line to get largest size from													*
   *	@return int :		length of largest block															*
-  * 																									*
-  * @verbose : Nothing to be verbose about.																*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 int getLengthOfLargestBlock(Line* line) {
 	int i, size;
@@ -395,7 +351,7 @@ void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
 		}
 	}
 	
-	ExportSolution(puzzle);
+	ExportSolution(puzzle, stdout);
 	
 	if (unsolvedCellCount > 0) {
 /*		Puzzle* newPuzzle;
@@ -423,7 +379,7 @@ void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
 		ClearStack(stack[ROW]);	//could just not push perpendicular lines that are already
 		ClearStack(stack[COL]);	//solved instead of clearing stacks here
 
-//		ExportSolution(puzzle);
+//		ExportSolution(puzzle, stdout);
 	} else {
 		//invalid solution, get out
 	}
@@ -459,8 +415,6 @@ int presolve(Puzzle* puzzle) {	//O(Lr*max((O(L), O(N*B), O(N*(B-L+S)))) + O(Lc*m
   *																										*
   * @param Stack** :		stack array to destroy														*
   *	@noreturn																							*
-  * 																									*
-  * @verbose : 				nothing to be verbose about													*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 void FreeStacks(Stack** stack) {
 	ClearStack(stack[ROW]);
@@ -489,12 +443,10 @@ int main (int n, char** args) {
 		solve(puzzle, stack, unsolvedCellCount);		//O(TODO)
 
 	FreePuzzle(puzzle);	//O(TODO)
-	FreeStacks(stack);
-	ExportSolution(NULL);
+	FreeStacks(stack);	//O(1)
+	ExportSolution(NULL, stdout);	//O(TODO)
 	
 	return 0;	
 }
-
-//		int opCoord = (coord == ROW ? COL : ROW);
 
 //maybe track amount of unsolved cells per line, and if a line is fully solved, don't push it onto the stack!
