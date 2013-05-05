@@ -271,21 +271,32 @@ int stackline(Puzzle* puzzle, Line* line, Stack* stack, int coord) {
 		i = length - sum;												//the first (length - sum) cells are unaffected, skip them
 		while (n < line->blockNum) {
 			int limit = i + line->block[n].length - (length - sum);	//the next (blocksize - (linelength - sum)) cells are full
-			for (; i < limit; i++) {	
-				if (line->cells[i]->state == STATE_BLNK) {
-					return - puzzle->length[ROW] * puzzle->length[COL];	//impossible
-				} else
-				if (line->cells[i]->state == STATE_UNKN) {
-					line->cells[i]->state = STATE_FULL;
-					ret++;
+			if (line->block[n].length > length - sum) {	//is there a superposition of this block?
+				for (; i < limit; i++) {
+					if (line->cells[i]->state == STATE_BLNK) {
+						return - puzzle->length[ROW] * puzzle->length[COL];	//impossible
+					} else
+					if (line->cells[i]->state == STATE_UNKN) {
+						line->cells[i]->state = STATE_FULL;
+						ret++;
+					}
 				}
+				i += length - sum;
+			} else {
+				i += line->block[n].length;
 			}
-			i += length - sum;											//the next (length - sum) cells are unaffected, skip them
+			
+/*			length - sum empty
+			b1 empty
+			1 empty
+			b2 - (length - sum)*/
+			
+			
+			
+//			i += length - sum;											//the next (length - sum) cells are unaffected, skip them
 			i++;														//1 more cell, for the mandatory space
-			printf(" ");
 			n++;														//next block
 		}
-		printf("\n");
 		return ret;
 	}	
 	return 0;
