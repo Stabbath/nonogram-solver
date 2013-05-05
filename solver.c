@@ -4,6 +4,15 @@
 #include "stacks.h"
 #include "solver.h"
 
+ /* * * * * * * * * * * * * * * * * * * * * *
+  * Complexity variables:					*
+  *	N - number of blocks in line			*
+  *	L - length of line (r|c => row|column)	*
+  *	B - length of block						*
+  * S - sum of blocks + blanks in line		*
+  * * * * * * * * * * * * * * * * * * * * * */
+
+
 //NOTE: these functions can be merged, with 'blockid' being incremented based on which check
 //we want. Would also allow for checks with blockid + n, for any n
 //also, there is no need for the 'i' var
@@ -33,6 +42,7 @@ int checkAtilde(Line* line, int blockid, int unkns, int index, int length) {
 	}
 	return 1;
 }
+
 
 #define NextBlock curBlock++;unknCount=0;fullCount=0;
 
@@ -132,17 +142,26 @@ void WIP_solveline(Puzzle* puzzle, Line* line, int x) {
 
 //note: check to make sure that sum of blocks + blanks is <= line length in getPuzzle: if a line is not, just quit since puzzle is impossible
 
-void FreePuzzle(Puzzle* puzzle) {
+
+/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+  * FreePuzzle: O(Lr*Lc)	- Just a macro function to clean up main. Frees memory allocated to puzzle. *
+  *																										*
+  * @param Puzzle* :		puzzle to destroy															*
+  *	@noreturn																							*
+  * 																									*
+  * @verbose : 				nothing to be verbose about													*
+  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+void FreePuzzle(Puzzle* puzzle) {	//O(Lr*Lc) + O(Lc) = O((Lr+1)*Lc) = O(Lr*Lc)
 	int i, j;
 
-	for (i = 0; i < puzzle->length[ROW]; i++){
-		for (j = 0; j < puzzle->length[COL]; j++){
+	for (i = 0; i < puzzle->length[ROW]; i++){	//O(Lr)
+		for (j = 0; j < puzzle->length[COL]; j++){	//O(Lc)
 			free(puzzle->line[ROW][i].cells[j]);
 		}
 		free(puzzle->line[ROW][i].cells);
 		free(puzzle->line[ROW][i].block);
 	}
-	for (i = 0; i < puzzle->length[COL]; i++){
+	for (i = 0; i < puzzle->length[COL]; i++){	//O(Lc)
 		free(puzzle->line[COL][i].cells);
 		free(puzzle->line[COL][i].block);
 	}
@@ -195,17 +214,38 @@ Puzzle* ClonePuzzle(Puzzle* old) {
 	return puzzle;
 }
 
+
+
+/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+  * getMinSumOfBlocksAndBlanks:	O(N)	- Adds up the sizes of all blocks, and then adds (blocknum - 1)	*
+  * 									for the mandatory amount of blanks.								*
+  *																										*
+  * @param Line* :		line to get sum of																*
+  *	@return int :		sum																				*
+  * 																									*
+  * @verbose : Nothing to be verbose about.																*
+  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 int getMinSumOfBlocksAndBlanks(Line* line) {
 	int i, count;
 	for (i = 0, count = 0; i < line->blockNum; i++) {
 		count += line->block[i].length;
 	}
-	if (line->blockNum > 1) {
-		count += 1*(line->blockNum - 1);
-	}
+	count += 1*(line->blockNum - 1);
+
 	return count;
 }
 
+
+
+
+/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+  * getLengthOfLargestBlock:	O(N)	- Gets the size of the largest block in a line					*
+  * 																									*
+  * @param Line* :		line to get largest size from													*
+  *	@return int :		length of largest block															*
+  * 																									*
+  * @verbose : Nothing to be verbose about.																*
+  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 int getLengthOfLargestBlock(Line* line) {
 	int i, size;
 	for (i = 0, size = 0; i < line->blockNum; i++) {
@@ -214,38 +254,60 @@ int getLengthOfLargestBlock(Line* line) {
 	return size;
 }
 
-int stackline(Puzzle* puzzle, Line* line, Stack* stack, int coord) {
-	int sum = getMinSumOfBlocksAndBlanks(line);
-	int cap = getLengthOfLargestBlock(line);
-	int length = puzzle->length[coord];
+
+
+
+/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+  * stackline:					O(N)	- Solves cells implicitly based on the line's native 			*
+  * 									characteristics, ie block number and block sizes.				*
+  *																										*
+  * NOTE: this routine will never provide new information if used more than once for a single line.		*
+  *																										*
+  * @param Line* :			line to solve																*
+  * @param Stack* :																						*
+  * @param int :			coord that this line 														*
+  *	@return int :			number of solved cells, or -1 if an impossibility was discovered.			*
+  * 																									*
+  * @verbose : TODO																						*
+  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+#define IMPOSSIBLE	-1
+int stackline(Line* line, int length) {	//O(N) + max((O(L), O(N*B), O(N*(B-L+S))) TODO
+	int sum = getMinSumOfBlocksAndBlanks(line);	//O(N)
+	int cap = getLengthOfLargestBlock(line);	//O(N)
 	
 	if (sum > length) {
-		return - puzzle->length[ROW] * puzzle->length[COL];	//impossible
+		return IMPOSSIBLE;	//impossible
 	}
 	
 	int i, ret = 0;
-	if (sum == 0) {	//means the whole line has blanks (special case)
-		for (i = 0; i < length; i++) {
+	if (sum == 0) {	//O(L)
+		/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+		 * Special case: If sum is 0, then the whole line is blank!  *
+		 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+		for (i = 0; i < length; i++) {	//O(L)
 			if (line->cells[i]->state == STATE_UNKN) {
 				line->cells[i]->state = STATE_BLNK;
 				ret++;
 			} else 
 			if (line->cells[i]->state == STATE_FULL) {
-				return - puzzle->length[ROW] * puzzle->length[COL];	//impossible
+				return IMPOSSIBLE;	//impossible
 			}
 			return ret;
 		}
 	} else
-	if (length == sum) {	//means full solution is known (special case)
+	if (length == sum) {	//O(N*B)
+		/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+		 * Special case: If sum is length, then the whole line is known! *
+		 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 		int i, j, l = 0;
-		for (i = 0; i < line->blockNum; i++, l++) {
-			for (j = 0; j < line->block[i].length; j++, l++) {
+		for (i = 0; i < line->blockNum; i++, l++) {	//O(N)
+			for (j = 0; j < line->block[i].length; j++, l++) {	//O(B)
 				if (line->cells[l]->state == STATE_UNKN) {
 					line->cells[l]->state = STATE_FULL;
 					ret++;
 				} else
 				if (line->cells[l]->state == STATE_BLNK) {
-					return - puzzle->length[ROW] * puzzle->length[COL];	//impossible
+					return IMPOSSIBLE;	//impossible
 				}
 			}
 			
@@ -255,45 +317,41 @@ int stackline(Puzzle* puzzle, Line* line, Stack* stack, int coord) {
 					ret++;
 				} else
 				if (line->cells[l]->state == STATE_FULL) {	//next cell must be blnk
-					return - puzzle->length[ROW] * puzzle->length[COL];		//impossible
+					return IMPOSSIBLE;		//impossible
 				}
 			}
 		}
 		return ret;
 	} else
-	if (length - sum < cap) {	//only situation in which stacking will do anything
+	if (length - sum < cap) {	//O(N*(B-L+S))				//only situation in which stacking will do anything
 		/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-		 * The logic here is this: for every block, we can identify (blocksize - (linelength - sum)) # cells,*
-		 * with (linelength - sum) unaffected cells both immediately before and after the cluster of # cells.*
-		 * There must also be 1 additional unaffected cell in between each cluster, for the mandatory - cell.*
+		 * Using simple math we can identify which cells must be filled and which remain unknown. The first  *
+		 * length-sum cells are unaffected because length-sum is the difference between the first cell of the*
+		 * left-most and right-most positions of the any block in the line. Then, blocksize-(length-sum) is  *
+		 * the amount of cells which must be filled if ANY cells at all are to be filled (ie if there is a   *
+		 * superposition of the leftmost and rightmost possibilities). If no cells can be filled, we skip    *
+		 * blocksize cells to account for that block's placement, otherwise we skip another length-sum to the*
+		 * right of the block. Also, if length - sum < cap, we know there is no superposition for any block. *
 		 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 		int n = 0;
 		i = length - sum;												//the first (length - sum) cells are unaffected, skip them
-		while (n < line->blockNum) {
-			int limit = i + line->block[n].length - (length - sum);	//the next (blocksize - (linelength - sum)) cells are full
-			if (line->block[n].length > length - sum) {	//is there a superposition of this block?
-				for (; i < limit; i++) {
+		while (n < line->blockNum) {	//O(N)
+			int limit = i + line->block[n].length - (length - sum);		//the next (blocksize - (linelength - sum)) cells are full
+			if (line->block[n].length > length - sum) {					//is there a superposition of this block?
+				for (; i < limit; i++) {	//O(B-L+S) TODO
 					if (line->cells[i]->state == STATE_BLNK) {
-						return - puzzle->length[ROW] * puzzle->length[COL];	//impossible
+						return IMPOSSIBLE;								//impossible
 					} else
 					if (line->cells[i]->state == STATE_UNKN) {
 						line->cells[i]->state = STATE_FULL;
 						ret++;
 					}
 				}
-				i += length - sum;
+				i += length - sum;										//the next (length - sum) cells are unaffected
 			} else {
-				i += line->block[n].length;
+				i += line->block[n].length;								//skip blocksize cells!
 			}
 			
-/*			length - sum empty
-			b1 empty
-			1 empty
-			b2 - (length - sum)*/
-			
-			
-			
-//			i += length - sum;											//the next (length - sum) cells are unaffected, skip them
 			i++;														//1 more cell, for the mandatory space
 			n++;														//next block
 		}
@@ -301,6 +359,10 @@ int stackline(Puzzle* puzzle, Line* line, Stack* stack, int coord) {
 	}	
 	return 0;
 }
+#undef IMPOSSIBLE
+
+
+
 
 Line* CreateSubLine(Line* line, int start, int end) {
 	Line* subline = (Line*) malloc((end-start)*sizeof(Cell*));
@@ -314,23 +376,15 @@ int GetNumberOfPossibleBlocksForCell(Cell* cell) {
 }
 
 
-#define BAD
-
 int solveline(Puzzle* puzzle, Line* line, Stack* stack, int coord) {
 	int ret;
 
-
-	#ifdef BAD
-	ret = stackline(puzzle, line, stack, coord);
-
-
-	#else
-	int i, num;
-	ret = 0;
+/*	int i, num;*/
+	ret = 0;/*
 	for (i = 0; i < puzzle->length[coord]; i++) {
-		num = GetNumberOfPossibleBlocksForCell(Line->cells[i]);
+		num = GetNumberOfPossibleBlocksForCell(line->cells[i]);
 		if (num == 1) {
-			if (/*num of valid cells around current cell (inclusive) < 2*block length*/ 1) {
+			if (/*num of valid cells around current cell (inclusive) < 2*block length*//* 1) {
 				Line* subline = CreateSubLine(line, start, end);	//line we wish to get a subline from, starting index to be first position, and index we want as the last position of the subline (both inclusive)
 				ret = stackline(subline);
 			}
@@ -340,9 +394,7 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack, int coord) {
 			ret++;
 		}
 	}
-	#endif
-
-
+*/
 	return ret;
 }
 
@@ -404,30 +456,70 @@ void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
 	return;
 }
 
-//possibly use a single stack, defining the axis that's currently being used in a static int in a short function, instead of repeatedly passing it along
-//is it really necessary to have 2 stacks? they store line pointers, so it shouldn't matter if it's a row or a column
-int main (int n, char** args) {
-	if (n < 2) errorout(ERROR_ARGS, "No file name was given.");	
-	
-	Puzzle* puzzle = getPuzzle(args[1]);
-	
-	int i;
-	
-	Stack** stack = (Stack**) malloc(AXES*sizeof(Stack*));
-	for (i = 0; i < AXES; i++) stack[i] = CreateStack();
-	for (i = 0; i < puzzle->length[ROW]; i++)	Push(stack[ROW], (void*) &puzzle->line[ROW][i]);
-	for (i = 0; i < puzzle->length[COL]; i++)	Push(stack[COL], (void*) &puzzle->line[COL][i]);
 
-	solve(puzzle, stack, puzzle->length[ROW] * puzzle->length[COL]);
-	FreePuzzle(puzzle);
+
+/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+  * presolve: O(TODO)		- Calls stackline on every row and on every column once to solve 	*
+  *							the easiest cells, to pave the way for the fuller linesolver.				*
+  *																										*
+  * @param Puzzle* :																					*
+  *	@return int :			number of unsolved cells left in the puzzle									*
+  * 																									*
+  * @verbose : 				  Solves cells implicitly based on each line's native characteristics, ie	*
+  * 						block numbers and block sizes. Basically fetches all of the basic "easy"	*
+  *							information for a puzzle before the program is allowed to go into the more	*
+  *							complete algorithm.	For more information check the stackline function.		*
+  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+int presolve(Puzzle* puzzle) {	//O(Lr*max((O(L), O(N*B), O(N*(B-L+S)))) + O(Lc*max((O(L), O(N*B), O(N*(B-L+S)))) TODO
+	int i, unsolvedCellCount = puzzle->length[ROW] * puzzle->length[COL];
+	for (i = 0; i < puzzle->length[ROW]; i++) unsolvedCellCount -= stackline(&puzzle->line[ROW][i], ROW);	//O(Lr*max((O(L), O(N*B), O(N*(B-L+S)))) TODO
+	for (i = 0; i < puzzle->length[COL]; i++) unsolvedCellCount -= stackline(&puzzle->line[COL][i], ROW);	//O(Lc*max((O(L), O(N*B), O(N*(B-L+S)))) TODO
+	
+	return unsolvedCellCount;
+}
+
+
+/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+  * FreeStacks: O(1)		- Just a macro function to clean up main. Frees memory allocated to stacks. *
+  *																										*
+  * @param Stack** :		stack array to destroy														*
+  *	@noreturn																							*
+  * 																									*
+  * @verbose : 				nothing to be verbose about													*
+  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+void FreeStacks(Stack** stack) {
 	ClearStack(stack[ROW]);
 	ClearStack(stack[COL]);
 	free(stack[ROW]);
 	free(stack[COL]);
 	free(stack);
+}
+
+//possibly use a single stack, defining the axis that's currently being used in a static int in a short function, instead of repeatedly passing it along
+//is it really necessary to have 2 stacks? they store line pointers, so it shouldn't matter if it's a row or a column, except for the issue with line length
+int main (int n, char** args) {
+	if (n < 2) errorout(ERROR_ARGS, "No file name was given.");	
+	
+	Puzzle* puzzle = getPuzzle(args[1]);	//O(TODO)
+	int i;
+	
+	Stack** stack = (Stack**) malloc(AXES*sizeof(Stack*));	
+	stack[ROW] = CreateStack();
+	for (i = 0; i < puzzle->length[ROW]; i++)	Push(stack[ROW], (void*) &puzzle->line[ROW][i]);	//O(Lr)
+	stack[COL] = CreateStack();
+	for (i = 0; i < puzzle->length[COL]; i++)	Push(stack[COL], (void*) &puzzle->line[COL][i]);	//O(Lc)
+
+	int unsolvedCellCount;
+	if ((unsolvedCellCount = presolve(puzzle)) != 0)	//O(TODO)
+		solve(puzzle, stack, unsolvedCellCount);		//O(TODO)
+
+	FreePuzzle(puzzle);	//O(TODO)
+	FreeStacks(stack);
 	ExportSolution(NULL);
 	
 	return 0;	
 }
 
 //		int opCoord = (coord == ROW ? COL : ROW);
+
+//maybe track amount of unsolved cells per line, and if a line is fully solved, don't push it onto the stack!

@@ -89,7 +89,7 @@ int getLengthOfLargestBlock(Line*);
  *
  *	@verbose
  */
-int stackline(Puzzle*, Line*, Stack*, int);
+//int stackline(Puzzle*, Line*, Stack*, int);
 
 /** solveline - attempts to solve a line
  *	@param Puzzle* :	pointer to puzzle that's being worked on
