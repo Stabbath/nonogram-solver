@@ -52,7 +52,7 @@ Puzzle* getPuzzle(char*);
 
 Line* CloneLine(Line*, int);
 Puzzle* ClonePuzzle(Puzzle*);
-int getMinSumOfBlocksAndBlanks(Line*);
+int getMinSumOfBlocksAndBlanks(Line*, int);
 int getLengthOfLargestBlock(Line*);
 
 int solveline(Puzzle*, Line*, Stack*, int);
