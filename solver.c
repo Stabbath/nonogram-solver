@@ -10,6 +10,8 @@
   *	L - length of line (r|c => row|column)	*
   *	B - length of block						*
   * S - sum of blocks + blanks in line		*
+  * --------------------------------------- *
+  * These usually refer to puzzle-wide avgs.*
   * * * * * * * * * * * * * * * * * * * * * */
 
  /* * * * * * * * * * * * * * * * * * * * * *
@@ -64,11 +66,11 @@ int checkAtilde(Line* line, int blockid, int unkns, int index, int length) {
   * 																									*
   * @verbose : TODO																						*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-#define NextBlock curBlock++;unknCount=0;fullCount=0;
+#define NextBlock n++;unknCount=0;fullCount=0;
 #define IMPOSSIBLE	-1
 int solveline(Puzzle* puzzle, Line* line, Stack* stack, int x) {
 	int y = (x == ROW ? COL : ROW);
-	int curBlock = 0;
+	int n = 0;
 	int solvedCells = 0;
 	int unknCount = 0;
 	int fullCount = 0;
@@ -77,44 +79,41 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack, int x) {
 	for (i = 0; i < puzzle->length[x]; i++) {	//we're going to go through every cell in the line
 		if (line->cells[i]->state == STATE_FULL) { //== '#' ?
 			fullCount++;
-			if (unknCount == 0) {
-				for (;line->cells[i]->state == STATE_FULL; i++) {
+			
+			if (unknCount == 0) {	//didnt find any '?'s before this '#'
+				/* * * * * * * * * * * * * * * * * * *
+				 * Fills out the rest of the block.	 *
+		 		 * * * * * * * * * * * * * * * * * * */
+		 		for (; line->block[n].length; i++) {
+					if (line->cells[i]->state == STATE_BLNK) {
+						return IMPOSSIBLE;
+					} else
+					if (line->cells[i]->state == STATE_UNKN) {
+						line->cells[i]->state = STATE_FULL;
+						solvedCells++; debp("solved a cell\n");
+					}
 					fullCount++;
-					if (fullCount > line->block[curBlock].length) {
-						return IMPOSSIBLE; //impossible
-					}
 				}
-				
-				if (line->cells[i]->state == STATE_BLNK) {	//ended by a '-' ?
-					if (fullCount == line->block[curBlock].length) {
-						NextBlock
-						continue;
-					} else {
-						return IMPOSSIBLE;	//impossible
-					}
-				} else {	//ended by a '?' ?
-					if (fullCount == line->block[curBlock].length) {	//append '-' and finish block
-						line->cells[i]->state = STATE_BLNK;
-						solvedCells++;
-					} else {
-						while (fullCount != line->block[curBlock].length) {	//finish the block
-							if (line->cells[i]->state == STATE_FULL) {
-								fullCount++;
-							} else 
-							if (line->cells[i]->state == STATE_BLNK) {
-								return IMPOSSIBLE;	//impossible
-							} else {
-								fullCount++;
-								solvedCells++;
-								line->cells[i]->state = STATE_FULL;
-							}
-							i++;
-						}
-					}
-					NextBlock
-					continue;
-				}		
-			} else {
+
+				/* * * * * * * * * * * * * * * * * * *
+				 * Appends a '-' at the end.		 *
+		 		 * * * * * * * * * * * * * * * * * * */
+				if (line->cells[i]->state == STATE_FULL) {	//block must be affixed by a '-', if it's '#' then the block is too long
+					return IMPOSSIBLE;
+				} else
+				if (line->cells[i]->state == STATE_UNKN) {
+					line->cells[i]->state == STATE_BLNK;
+					solvedCells++;	debp("solved a cell\n");
+				}
+
+				NextBlock
+				continue;
+
+			} else {	//we read some '?'s before this '#'
+
+				//do i actually have to do anything here?
+				//if there's unkns, we just keep running and see how far 
+
 				//not sure yet, complex shit
 				//TODO
 				//
@@ -124,29 +123,30 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack, int x) {
 			if (unknCount == 0) { //passed cells == 0?
 				
 			} else {
-				if (unknCount < line->block[curBlock].length) {	//passed cells < block size?
-					if (checkA(line, curBlock, unknCount, i, puzzle->length[x])) {	//O(N)
+				if (unknCount < line->block[n].length) {	//passed cells < block size?
+					if (checkA(line, n, unknCount, i, puzzle->length[x])) {	//O(N)
 						int j;
 						for (j = i; line->cells[j]->state == STATE_UNKN; j++) {	//set previous unkn cells to blank before continuing
 							line->cells[j]->state = STATE_BLNK;
-							solvedCells++;
+							solvedCells++;	debp("solved a cell\n");
 						}
 						continue;	//goto next cell
 					} else {
 						return IMPOSSIBLE;	//impossible
 					}
 				} else {
-					if (checkA(line, curBlock, unknCount, i, puzzle->length[x])) {	//O(N)
+					if (checkA(line, n, unknCount, i, puzzle->length[x])) {	//O(N)
 						//not sure yet, complex shit
 						//TODO
 						//
 					} else {
-						if (checkAtilde(line, curBlock, unknCount, i, puzzle->length[x])) {	//O(N)
+						if (checkAtilde(line, n, unknCount, i, puzzle->length[x])) {	//O(N)
 							//check difference between passed cells and block length,
 							//stack the block and fill a few #'s
 							//NOTE: if passed cells >> blocksize, we probably have several blocks in this
 							//space, need to do check to see which blocks can/must fit in this space, which
 							//can/must fit afterward, and stack them
+							//do this with recursive calls of checkA with an increasing "n" increment, after mixing checkA and checkAtilde into one
 							//TODO
 							NextBlock
 							continue;
@@ -408,13 +408,29 @@ Cell* PickCell(Puzzle* puzzle) {	//worst case: O(Lr*Lc) = O(L²)		, average is m
   *							solver stack. Does this until all solutions have been found.				*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
+	Line* line;
+	int a;
 	while (!(IsStackEmpty(stack[ROW]) && IsStackEmpty(stack[COL])) && unsolvedCellCount > 0) {
+/*		if (!IsStackEmpty(stack[ROW])) {
+			line = Pop(stack[ROW]);
+
+			if ((a = solveline(puzzle, line, stack[COL], ROW)) == -1)	return;	//return if impossibility is found
+
+			if (line == &puzzle->line[ROW][0] || line == &puzzle->line[COL][0]) {	//special case
+				//first blocks of perpendicular lines are known
+			} else
+			if (line == &puzzle->line[ROW][puzzle->length[ROW]-1] || line == &puzzle->line[COL][puzzle->length[COL]-1]) {	//special case
+				//last blocks of perpendicular lines are known				
+			}
+
+		}*/
 		if (!IsStackEmpty(stack[ROW])) {
 			unsolvedCellCount -= solveline(puzzle, Pop(stack[ROW]), stack[COL], ROW);
 		}
 		if (!IsStackEmpty(stack[COL])) {
 			unsolvedCellCount -= solveline(puzzle, Pop(stack[COL]), stack[ROW], COL);
 		}
+//		unsolvedCellCount -= a;
 	}
 	
 	ExportSolution(puzzle, stdout);
@@ -423,7 +439,7 @@ void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
 		int row = 0, col = 0;
 		Cell* pick = PickCell(puzzle);	//O(L²) TODO but might be improved
 		Stack* cellstack = CreateStack();
-				
+		
 		pick->state = STATE_FULL;
 		Push(stack[ROW], (void*) &puzzle->line[ROW][row]);
 		Push(stack[COL], (void*) &puzzle->line[COL][col]);
@@ -436,10 +452,14 @@ void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
 		Push(stack[ROW], (void*) &puzzle->line[ROW][row]);
 		Push(stack[COL], (void*) &puzzle->line[COL][col]);
 //		metasolve(puzzle, stack, unsolvedCellCount - 1, cellstack);
-		while (!IsStackEmpty(cellstack)) {
+/*		while (!IsStackEmpty(cellstack)) {
 			((Cell*) Pop(cellstack))->state = STATE_UNKN;
 		}
-
+		
+		pick->state = STATE_UNKN;*/
+		
+		ClearStack(cellstack);
+		free(cellstack);
 	} else
 	if (unsolvedCellCount == 0) {
 		ClearStack(stack[ROW]);	//could just not push perpendicular lines that are already
@@ -480,7 +500,7 @@ int presolve(Puzzle* puzzle) {	//O((Lr+Lc)*N²) = O(2*L*N²) = O(L*N²)
 
 
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-  * FreeStacks: O(1)		Just a macro function to clean up main. Frees memory allocated to stacks. *
+  * FreeStacks: O(1)		Just a macro function to clean up main. Frees memory allocated to stacks.	*
   *																										*
   * @param Stack** :		stack array to destroy														*
   *	@noreturn																							*
@@ -499,7 +519,7 @@ void FreeStacks(Stack** stack) {
 //O(2L² + 2L + 2 + L*N² + TODO)
 
 int main (int n, char** args) {
-	if (n < 2) errorout(ERROR_ARGS, "No file name was given.");	
+	if (n < 2) errorout(ERROR_ARGS, "No file name was given.");
 	
 	Puzzle* puzzle = getPuzzle(args[1]);	//O(L²)
 	int i;
