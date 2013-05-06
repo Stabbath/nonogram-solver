@@ -74,7 +74,10 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack, int x) {
 	int solvedCells = 0;
 	int unknCount = 0;
 	int fullCount = 0;
+	int length = puzzle->length[x];
 	int i;
+	
+//	ExportSolution(puzzle, stdout);
 	
 	for (i = 0; i < puzzle->length[x]; i++) {	//we're going to go through every cell in the line
 		if (line->cells[i]->state == STATE_FULL) { //== '#' ?
@@ -84,7 +87,7 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack, int x) {
 				/* * * * * * * * * * * * * * * * * * *
 				 * Fills out the rest of the block.	 *
 		 		 * * * * * * * * * * * * * * * * * * */
-		 		for (; line->block[n].length; i++) {
+		 		for (; i < line->block[n].length; i++) {
 					if (line->cells[i]->state == STATE_BLNK) {
 						return IMPOSSIBLE;
 					} else
@@ -94,6 +97,7 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack, int x) {
 					}
 					fullCount++;
 				}
+				
 
 				/* * * * * * * * * * * * * * * * * * *
 				 * Appends a '-' at the end.		 *
@@ -102,21 +106,34 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack, int x) {
 					return IMPOSSIBLE;
 				} else
 				if (line->cells[i]->state == STATE_UNKN) {
-					line->cells[i]->state == STATE_BLNK;
+					line->cells[i]->state = STATE_BLNK;
 					solvedCells++;	debp("solved a cell\n");
 				}
 
 				NextBlock
 				continue;
 
-			} else {	//we read some '?'s before this '#'
+			} else {	//If we did find ?'s before, the filling of #'s will be handled when we get to a '?' after the '#'s
+						//Because of that, all we need to do here is check for implied blanks
+				
+				
+				//regardless of which block it is, fill blanks between it and the previous block
+				
+				//find out how many we've identified 
 
-				//do i actually have to do anything here?
-				//if there's unkns, we just keep running and see how far 
-
-				//not sure yet, complex shit
-				//TODO
-				//
+				if (n == line->blockNum - 1) {	//if it's the last block, also check what the farthest index it can reach is, fill blanks after that
+					int j;
+					for (j = i ; j - i < line->block[n].length; j++) {		//skip cells that might belong to the block
+						if (j == puzzle->length[x]) break;					//reached the end of the line, get out
+						if (line->cells[j]->state == STATE_BLNK) break;		//blank means an early break
+					}
+					for (; j < puzzle->length[x]; j++) {
+						line->cells[j]->state = STATE_BLNK;
+						solvedCells++;
+					}
+				}
+			
+				continue;		//end of the line, dont bother going anywhere else
 			}
 		} else
 		if (line->cells[i]->state == STATE_BLNK) {	//== '-' ?
@@ -157,7 +174,61 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack, int x) {
 				}
 			}
 		} else {	//== '?'
-			unknCount++;
+			if (fullCount == 0) {	//pre-block unkn's
+				unknCount++;
+			} else {	//post-block unkn's
+				int unknCountPost = 0;
+				int j;
+				int limit = length - getMinSumOfBlocksAndBlanks(line, n) + 1;	//+1 for the space after the current block
+				if (limit < i || limit > length) return IMPOSSIBLE;	//the remaining blocks can't fit or n is out of bounds
+				limit = (limit < i + line->block[n].length) ? limit : i + line->block[n].length;	//stop at whichever limit is closer
+
+				/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+				 * Counts the cells that can belong to the block that come after it. *
+				 * Based on the cells that come before and the ones that come after, *
+				 * identifies which ones MUST belong to the block.					 *
+				 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+				for (j = i; j < limit; j++) {	//read from i to limit (non-inclusive)
+					if (line->cells[j]->state == STATE_BLNK) {
+						break;	//blank found, block can't go past it - also counts as a limit, so break
+					} else
+					if (line->cells[j]->state == STATE_UNKN) {
+						unknCountPost++;	//one more unknown post-block
+					} else {
+						if (unknCount + fullCount + unknCountPost + 1 <= line->block[n].length) {	//means the cells in the middle must be filled
+							for (; unknCountPost > 0; unknCountPost--) {	//go back and fill with #'s
+								line->cells[j-unknCountPost]->state = STATE_FULL;
+								fullCount++;
+								solvedCells++;
+							}
+							fullCount++;
+							
+							
+							if (fullCount == line->block[n].length) {	//did the previous step fill the whole block?
+								j++;
+								if 		(line->cells[j]->state == STATE_FULL) return IMPOSSIBLE;	//block was supposed to have ended
+								else if	(line->cells[j]->state == STATE_UNKN) {
+									line->cells[j]->state = STATE_BLNK;
+									solvedCells++;
+								}
+							}
+							
+							continue;		//and then continue where we left off, but with the block now fuller
+
+						} else {	//means the cells in the middle CAN'T be filled
+							
+							
+							//TODO
+							
+						}
+					}
+				}
+				//TODO - this is after all cells that can belong to the block have been identified
+				
+				NextBlock
+				continue;
+			}
+			
 			//careful if passed cells >> block length TODO
 			continue;
 		}
@@ -205,18 +276,16 @@ void FreePuzzle(Puzzle* puzzle) {	//O(Lr*Lc) + O(Lc) = O((Lr+1)*Lc) = O(Lr*Lc) =
   * 									for the mandatory amount of blanks.								*
   *																										*
   * @param Line* :						line to get sum of												*
-  *	@return int :						sum																*
+  * @param int :						block index to start on											*
+  *	@return int :						sum; will return a negative number if n is out of bounds		*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-int getMinSumOfBlocksAndBlanks(Line* line) {
-	int i, count;
-	for (i = 0, count = 0; i < line->blockNum; i++) {	//O(N)
+int getMinSumOfBlocksAndBlanks(Line* line, int n) {
+	int i, count = 0;
+	for (i = n; i < line->blockNum; i++) {	//O(N - n) = O(N) worst case
 		count += line->block[i].length;
 	}
-	count += 1*(line->blockNum - 1);
-
-	return count;
+	return count + (line->blockNum - n - 1);	//mandatory spaces
 }
-
 
 
 
@@ -281,9 +350,9 @@ int stackline(Line* line, int length) {
   * =   O(N²*(B+1))                                 , dN²/dL >> d(B+1)/dL                   *
   * =   O(N²)           	 	                                               	            *
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-	int sum = getMinSumOfBlocksAndBlanks(line);	//O(N)
+	int sum = getMinSumOfBlocksAndBlanks(line, 0);	//O(N)
 	int cap = getLengthOfLargestBlock(line);	//O(N)
-	
+		
 	if (sum > length) {
 		return IMPOSSIBLE;	//impossible
 	}
@@ -408,8 +477,9 @@ Cell* PickCell(Puzzle* puzzle) {	//worst case: O(Lr*Lc) = O(L²)		, average is m
   *							solver stack. Does this until all solutions have been found.				*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
-	Line* line;
-	int a;
+
+	ExportSolution(puzzle, stdout);
+
 	while (!(IsStackEmpty(stack[ROW]) && IsStackEmpty(stack[COL])) && unsolvedCellCount > 0) {
 /*		if (!IsStackEmpty(stack[ROW])) {
 			line = Pop(stack[ROW]);
@@ -434,6 +504,7 @@ void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
 	}
 	
 	ExportSolution(puzzle, stdout);
+	exit(0);
 	
 	if (unsolvedCellCount > 0) {
 		int row = 0, col = 0;
