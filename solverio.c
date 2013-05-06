@@ -77,7 +77,7 @@ void ExportSolution(Puzzle* puzzle, FILE* stream) {	//O(L²)
 		}
 	} else {
 		#ifdef DEBUG
-		ExportConfig(puzzle, stdout);
+//		ExportConfig(puzzle, stdout);
 		#endif
 		
 		int i, j;
