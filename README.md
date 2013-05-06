@@ -15,7 +15,7 @@ The following is a text representation/pseudocode of the current state of the al
 
 NextBlock: block = next, passed cells = 0	//next = first on the first time  
 A: read cell	//next = first on the first time  
-is it #?  
+* is it #?  
     * NO: is it -?  
         * NO: passed cells++  
             * goto A  
@@ -26,7 +26,7 @@ is it #?
 
   
 Easy: read cell  
-is it #?  
+* is it #?  
     * YES: goto Easy  
     * NO: is it -?  
         * YES: cell index == block length?  
@@ -106,11 +106,9 @@ Will use a different structure if it turns out that there's something much more 
 
 ###todo:
 ####Priorities
-Finish functions to free allocated memory.  
-Test with valgrind to make sure everything's good in that department.  
-Improve and implement line solving algorithm.  
+Test with valgrind just in case	.  
+Finish line solving algorithm.  
 ####Secondary
-Write function descriptions and add missing functions to headers.  
-Continue writing readme, including mentions of previous 2d Cell array scheme and whatnot, maybe mention debug functions.  
+Add missing functions to headers.  
 Make sure all memory allocs will errorout if return pointer is null, and other similar things.  
 Change ExportSolution to export solutions into (a) text file(s) rather than print to console.  
