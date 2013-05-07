@@ -67,8 +67,10 @@ int checkAtilde(Line* line, int blockid, int unkns, int index, int length) {
   * @verbose : TODO																						*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 #define NextBlock n++;unknCount=0;fullCount=0;
+#define SolvedCell(i)	solvedCells++;Push(stack[CELL],line->cells[i]);
 #define IMPOSSIBLE	-1
-int solveline(Puzzle* puzzle, Line* line, Stack* stack, int x) {
+int solveline(Puzzle* puzzle, Stack** stack, int x) {
+	Line* line = Pop(stack[x]);
 	int y = (x == ROW ? COL : ROW);
 	int n = 0;
 	int solvedCells = 0;
@@ -93,7 +95,7 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack, int x) {
 					} else
 					if (line->cells[i]->state == STATE_UNKN) {
 						line->cells[i]->state = STATE_FULL;
-						solvedCells++;
+						SolvedCell(i)
 					}
 					fullCount++;
 				}
@@ -107,12 +109,12 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack, int x) {
 				} else
 				if (line->cells[i]->state == STATE_UNKN) {
 					line->cells[i]->state = STATE_BLNK;
-					solvedCells++;
+					SolvedCell(i)
 				}
 
 				NextBlock
 				continue;
-
+				
 			} else {	//If we did find ?'s before, the filling of #'s will be handled when we get to a '?' after the '#'s
 						//Because of that, all we need to do here is check for implied blanks
 				
@@ -121,8 +123,17 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack, int x) {
 				
 				//find out how many we've identified
 				//TODO
-				
-
+				if (n == 0) {
+/*					int j;
+					for (j = i - unknCount; j - i < line->block[n].length; j++) {		//skip cells that might belong to the block
+						if (j == puzzle->length[x]) break;					//reached the end of the line, get out
+						if (line->cells[j]->state == STATE_BLNK) break;		//blank means an early break
+					}
+					for (; j < puzzle->length[x]; j++) {
+						line->cells[j]->state = STATE_BLNK;
+						SolvedCell(i)
+					}*/
+				}
 				if (n == line->blockNum - 1) {	//if it's the last block, also check what the farthest index it can reach is, fill blanks after that
 					int j;
 					for (j = i ; j - i < line->block[n].length; j++) {		//skip cells that might belong to the block
@@ -131,7 +142,7 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack, int x) {
 					}
 					for (; j < puzzle->length[x]; j++) {
 						line->cells[j]->state = STATE_BLNK;
-						solvedCells++;
+						SolvedCell(i)
 					}
 				}
 			
@@ -147,7 +158,7 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack, int x) {
 						int j;
 						for (j = i; line->cells[j]->state == STATE_UNKN; j++) {	//set previous unkn cells to blank before continuing
 							line->cells[j]->state = STATE_BLNK;
-							solvedCells++;
+							SolvedCell(i)
 						}
 						continue;	//goto next cell
 					} else {
@@ -198,8 +209,8 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack, int x) {
 					else if (line->cells[j]->state == STATE_UNKN) unknCountPost++;	//one more unknown cell post-block
 
 					else {	//we found a new '#'! this means there's a gap of unknows in between 2 groups of '#'
-						if (unknCount + fullCount + unknCountPost + 1 <= line->block[n].length) {	//means the cells in the middle must be filled
-							
+						if (unknCount + fullCount + unknCountPost + 1 <= line->block[n].length		//means the cells in the middle must be filled
+						&&  checkA(line, n, unknCount, j - fullCount, puzzle->length[x])) {
 							//find out if the first cluster can belong to the previous block:
 							
 							
@@ -207,7 +218,7 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack, int x) {
 							for (; unknCountPost > 0; unknCountPost--) {	//go back and fill with #'s
 								line->cells[j-unknCountPost]->state = STATE_FULL;
 								fullCount++;
-								solvedCells++;
+								SolvedCell(i)
 							}
 							fullCount++;
 						
@@ -217,7 +228,7 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack, int x) {
 								if 		(line->cells[j]->state == STATE_FULL) return IMPOSSIBLE;	//block was supposed to have ended
 								else if	(line->cells[j]->state == STATE_UNKN) {
 									line->cells[j]->state = STATE_BLNK;
-									solvedCells++;
+									SolvedCell(i)
 								}
 							}
 							
@@ -258,7 +269,7 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack, int x) {
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 void FreePuzzle(Puzzle* puzzle) {	//O(Lr*Lc) + O(Lc) = O((Lr+1)*Lc) = O(Lr*Lc) = O(L²)
 	int i, j;
-
+	
 	for (i = 0; i < puzzle->length[ROW]; i++){	//O(Lr)
 		for (j = 0; j < puzzle->length[COL]; j++){	//O(Lc)
 			free(puzzle->line[ROW][i].cells[j]);
@@ -270,7 +281,7 @@ void FreePuzzle(Puzzle* puzzle) {	//O(Lr*Lc) + O(Lc) = O((Lr+1)*Lc) = O(Lr*Lc) =
 		free(puzzle->line[COL][i].cells);
 		free(puzzle->line[COL][i].block);
 	}
-
+	
 	free(puzzle->line[ROW]);
 	free(puzzle->line[COL]);
 	free(puzzle->line);
@@ -343,7 +354,7 @@ int stackline(Line* line, int length) {
   * =   O(N + (3-N)*L + N*L + N² - 2*N)														*
   * =   O(N² + 3*L - N)																		*
   * =   O(N² + 3*L)									, dN²/dL >> d(3*L)/dL					*
-  * =   O(N²)										, dN²/dL >> d(3*L)/dL					*
+  * =   O(N²)																				*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 //alternative:
  /*																							*
@@ -492,22 +503,22 @@ void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
 	while (!(IsStackEmpty(stack[ROW]) && IsStackEmpty(stack[COL])) && unsolvedCellCount > 0) {
 /*		if (!IsStackEmpty(stack[ROW])) {
 			line = Pop(stack[ROW]);
-
+			
 			if ((a = solveline(puzzle, line, stack[COL], ROW)) == -1)	return;	//return if impossibility is found
-
+			
 			if (line == &puzzle->line[ROW][0] || line == &puzzle->line[COL][0]) {	//special case
 				//first blocks of perpendicular lines are known
 			} else
 			if (line == &puzzle->line[ROW][puzzle->length[ROW]-1] || line == &puzzle->line[COL][puzzle->length[COL]-1]) {	//special case
 				//last blocks of perpendicular lines are known				
 			}
-
+			
 		}*/
 		if (!IsStackEmpty(stack[ROW])) {
-			unsolvedCellCount -= solveline(puzzle, Pop(stack[ROW]), stack[COL], ROW);
+			unsolvedCellCount -= solveline(puzzle, stack, ROW);
 		}
 		if (!IsStackEmpty(stack[COL])) {
-			unsolvedCellCount -= solveline(puzzle, Pop(stack[COL]), stack[ROW], COL);
+			unsolvedCellCount -= solveline(puzzle, stack, COL);
 		}
 //		unsolvedCellCount -= a;
 	}
@@ -515,32 +526,30 @@ void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
 	ExportSolution(puzzle, stdout);
 	exit(0);
 	
-	if (unsolvedCellCount > 0) {
+	if (unsolvedCellCount > 0) {/*
+		if (stack[CELL] == NULL) stack[CELL] = CreateStack();
+		
 		int row = 0, col = 0;
 		Cell* pick = PickCell(puzzle);	//O(L²) TODO but might be improved
-		Stack* cellstack = CreateStack();
 		
 		pick->state = STATE_FULL;
 		Push(stack[ROW], (void*) &puzzle->line[ROW][row]);
 		Push(stack[COL], (void*) &puzzle->line[COL][col]);
-//		metasolve(puzzle, stack, unsolvedCellCount - 1, cellstack);
+		solve(puzzle, stack, unsolvedCellCount - 1);
 		while (!IsStackEmpty(cellstack)) {
-			((Cell*) Pop(cellstack))->state = STATE_UNKN;
+			((Cell*) Pop(stack[CELL]))->state = STATE_UNKN;
 		}
 		
 		pick->state = STATE_BLNK;
 		Push(stack[ROW], (void*) &puzzle->line[ROW][row]);
 		Push(stack[COL], (void*) &puzzle->line[COL][col]);
-//		metasolve(puzzle, stack, unsolvedCellCount - 1, cellstack);
-/*		while (!IsStackEmpty(cellstack)) {
-			((Cell*) Pop(cellstack))->state = STATE_UNKN;
+		solve(puzzle, stack, unsolvedCellCount - 1);
+		while (!IsStackEmpty(cellstack)) {
+			((Cell*) Pop(stack[CELL]))->state = STATE_UNKN;
 		}
 		
-		pick->state = STATE_UNKN;*/
-		
-		ClearStack(cellstack);
-		free(cellstack);
-	} else
+		pick->state = STATE_UNKN;
+*/	} else
 	if (unsolvedCellCount == 0) {
 		ClearStack(stack[ROW]);	//could just not push perpendicular lines that are already
 		ClearStack(stack[COL]);	//solved instead of clearing stacks here
@@ -590,32 +599,53 @@ void FreeStacks(Stack** stack) {
 	ClearStack(stack[COL]);
 	free(stack[ROW]);
 	free(stack[COL]);
+	if (stack[CELL] != NULL) {
+		ClearStack(stack[CELL]);
+		free(stack[CELL]);
+	}
 	free(stack);
 }
 
 
+/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+  * InitStacks: O(L)		Just a macro function to clean up main. Allocates memory to stacks and 		*
+  *							pushes every row and column to its respective stack.						*
+  *																										*
+  * @param Puzzle* :		puzzle to get ROW|COL lengths from											*
+  *	@return	Stack** :		stack array that was created and initialised								*
+  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+Stack** InitStacks(Puzzle* puzzle) {	//O(2L)	= O(L)
+	int i;
 
-//O(L²) + O(2L) + O(L*N²) + O(TODO) + O(L²) + O(1) + O(1) =
-//O(2L² + 2L + 2 + L*N² + TODO)
+	Stack** stack = (Stack**) malloc((AXES+1)*sizeof(Stack*));
+	stack[ROW] = CreateStack();
+	for (i = 0; i < puzzle->length[ROW]; i++)	Push(stack[ROW], (void*) &puzzle->line[ROW][i]);	//O(Lr)
+	stack[COL] = CreateStack();
+	for (i = 0; i < puzzle->length[COL]; i++)	Push(stack[COL], (void*) &puzzle->line[COL][i]);	//O(Lc)
+	stack[CELL] = NULL;	
+
+	return stack;
+}
+
+
+
+//O(L²) + O(L) + O(L*N²) + O(TODO) + O(L²) + O(1) + O(1) =
+//O(2L² + L + 2 + L*N² + TODO)
 
 int main (int n, char** args) {
 	if (n < 2) errorout(ERROR_ARGS, "No file name was given.");
 	
 	Puzzle* puzzle = getPuzzle(args[1]);	//O(L²)
-	int i;
 	
-	Stack** stack = (Stack**) malloc(AXES*sizeof(Stack*));	
-	stack[ROW] = CreateStack();
-	for (i = 0; i < puzzle->length[ROW]; i++)	Push(stack[ROW], (void*) &puzzle->line[ROW][i]);	//O(Lr)
-	stack[COL] = CreateStack();
-	for (i = 0; i < puzzle->length[COL]; i++)	Push(stack[COL], (void*) &puzzle->line[COL][i]);	//O(Lc)
-
 	int unsolvedCellCount;
-	if ((unsolvedCellCount = presolve(puzzle)) != 0)	//O(L*N²)
+	if ((unsolvedCellCount = presolve(puzzle)) != 0) {	//O(L*N²)
+		Stack** stack = InitStacks(puzzle);	//O(L)
 		solve(puzzle, stack, unsolvedCellCount);		//O(TODO)
-
+		FreeStacks(stack);	//O(1)
+	}
+	
+	
 	FreePuzzle(puzzle);	//O(L²)
-	FreeStacks(stack);	//O(1)
 	ExportSolution(NULL, NULL);	//O(1)
 	
 	return 0;	

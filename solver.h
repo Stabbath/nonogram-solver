@@ -20,6 +20,8 @@ Por exemplo, se descobrirmos que toda a última linha é composta por #'s, entao
 #define ROW 0	//for array indexing
 #define COL 1
 #define AXES 2
+#define CELL 2
+
 
 #define DEBUG
 
@@ -55,7 +57,7 @@ Puzzle* ClonePuzzle(Puzzle*);
 int getMinSumOfBlocksAndBlanks(Line*, int);
 int getLengthOfLargestBlock(Line*);
 
-int solveline(Puzzle*, Line*, Stack*, int);
+int solveline(Puzzle*, Stack**, int);
 
 void solve(Puzzle*, Stack**, int);
 
