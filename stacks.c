@@ -8,6 +8,7 @@ Stack* CreateStack() {
 }
 
 void Push(Stack* stack, Item* item) {
+	if (stack == NULL) return;
 	Element* element = (Element*) malloc(sizeof(Element));
 	Element* buffer = stack->top;
 	stack->top = element;
