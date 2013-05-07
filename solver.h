@@ -37,6 +37,7 @@ typedef struct _line {
 	Cell** cells;	//array of pointers to cells
 	Block* block;	//array of blocks for this line
 	int blockNum;
+	int unsolvedCells;
 } Line;
 
 typedef struct _puzzle {

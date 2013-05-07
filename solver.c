@@ -18,41 +18,72 @@
   * TODO: Finish line solver				*
   *	 && Brute force change tracker/reverter *
   *	 && solver line/row pushing 			*
-  * * * * * * * * * * * * * * * * * * * * * */
+  * * * * * * * * * * * * * * * * x* * * * * */
 
 
-//NOTE: these functions can be merged, with 'blockid' being incremented based on which check
-//we want. Would also allow for checks with blockid + n, for any n
-//also, there is no need for the 'i' var
 
-/*can all remaining blocks and spaces (including the current block)
-  fit after the current cell?*/
-int checkA(Line* line, int blockid, int unkns, int index, int length) {	//O(N-i), with i being the current block. Worst case, i=0 -> O(N)
-	int i, count = 0;
-	for (i = blockid; i < line->blockNum; i++) count += 1 + line->block[i].length;	//O(N-i)
-	count--; //because we considered 1 space too many
-	
-	if (count < (length - 1) - index) {	//means we can't fit all the blocks and spaces
-		return 0;
-	}
-	return 1;
-}
+//	time complexity of checking if a line is already solved: O(L) per line => O(L²*L) = O(L³) for the whole puzzle
+			//(just loop through all cells and check none are UNKN)
+//	memory complexity for storing if it is already solved:	O(L²) (for whole puzzle) with a time complexity of O(1)
+			//(store a variable in each line struct, that gets updated as we solve each cell)
 
-/*can all remaining blocks and spaces (EXCLUDING the current block)
-  fit after the current cell?*/
-int checkAtilde(Line* line, int blockid, int unkns, int index, int length) {
-	int i, count = 0;
-	for (i = blockid + 1; i < line->blockNum; i++) count += 1 + line->block[i].length;
-	count--; //because we considered 1 space too many
-	
-	if (count < (length - 1) - index) {	//means we can't fit all the blocks and spaces
-		return 0;
-	}
-	return 1;
+
+
+
+void ConditionalPush(Stack* stack, Line* line) {
+//	if (line->unsolvedCells > 0) {
+		Push(stack, (void*) line);
+/*	} else {
+		return;
+	}*/
 }
 
 
+int getMinSumOfBlocksAndBlanksPrev(Line* line, int n);
 
+
+int getBlockBounds(Line* line, int n, int* rmin, int* rmax, int length) {
+	int i, j, num;
+	int min = getMinSumOfBlocksAndBlanksPrev(line, n);					//inclusive min
+	int max = length - getMinSumOfBlocksAndBlanks(line, n) - 1;			//inclusive max
+	debp("%d = %d - %d - 1 for n=%d\n", max, length, getMinSumOfBlocksAndBlanks(line, n), n);
+	//TODO in the middle of all this min/max detection: what about #'s that might belong to the next or previous block inside of the min-max zone?
+	//and what if several other blocks can fit inside the min-max zone?
+	/*falta delimitar maxs e mins pelas celulas cheias a uma distancia <= tamanho do bloco	!!!*/
+	
+//	printf("%d min %d max; %d n %d length\n", min,max,n,length);
+	for (i = min, num = 0; i <= max; i++) {		//adjust min
+		if (line->cells[i]->state == STATE_BLNK) {
+			if (i - min < line->block[n].length) {
+				min = i;
+			} else {
+				if (num++ > 0) return 0;	//means there's 2+ places where the block might be, nothing we can do, go to next block
+			}
+		}
+	}
+	if (num == 0) {		//block doesnt fit anywhere
+//		debp("problum\n");
+		return -1;
+	}
+	for (j = min; j <= max; j++) {					//adjust max
+		if (line->cells[j]->state == STATE_BLNK) {
+			max = j - 1;
+		}
+	}
+	
+	
+	
+	*rmin = min;
+	*rmin = max;
+	
+	return 1;
+}
+
+
+
+#define NextBlock 		n++;unknCount=0;fullCount=0;
+#define SolvedCell(a)	solvedCells++;Push(stack[CELL],line->cells[a]);ConditionalPush(stack[y],&puzzle->line[y][a]);
+#define IMPOSSIBLE		puzzle->length[ROW]*puzzle->length[COL]
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
   * solveline:				Solves cells based on the line's native characteristics, ie block number 	*
   * O(TODO)					and block sizes, COUPLED WITH all information that's already been gathered	*
@@ -60,203 +91,101 @@ int checkAtilde(Line* line, int blockid, int unkns, int index, int length) {
   *																										*
   * @param Puzzle* :		puzzle we're working on														*
   * @param Line* :			line to solve																*
-  * @param Stack* :			stack to push perpendicular lines to										*
+  * @param Stack** :		support stack array															*
   * @param int :			ROW|COL - coordinate of this line											*
   *	@return int :			number of solved cells, or -1 if an impossibility was discovered.			*
-  * 																									*
-  * @verbose : TODO																						*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-#define NextBlock n++;unknCount=0;fullCount=0;
-#define SolvedCell(i)	solvedCells++;Push(stack[CELL],line->cells[i]);
-#define IMPOSSIBLE	-1
 int solveline(Puzzle* puzzle, Stack** stack, int x) {
 	Line* line = Pop(stack[x]);
-	int y = (x == ROW ? COL : ROW);
-	int n = 0;
-	int solvedCells = 0;
-	int unknCount = 0;
-	int fullCount = 0;
 	int length = puzzle->length[x];
-	int i;
-	
-//	ExportSolution(puzzle, stdout);
-	
-	for (i = 0; i < puzzle->length[x]; i++) {	//we're going to go through every cell in the line
-		if (line->cells[i]->state == STATE_FULL) { //== '#' ?
-			fullCount++;
-			
-			if (unknCount == 0) {	//didnt find any '?'s before this '#'
-				/* * * * * * * * * * * * * * * * * * *
-				 * Fills out the rest of the block.	 *
-		 		 * * * * * * * * * * * * * * * * * * */
-		 		for (; i < line->block[n].length; i++) {
-					if (line->cells[i]->state == STATE_BLNK) {
-						return IMPOSSIBLE;
-					} else
-					if (line->cells[i]->state == STATE_UNKN) {
-						line->cells[i]->state = STATE_FULL;
-						SolvedCell(i)
-					}
+	int y = (x == ROW ? COL : ROW);
+	int solvedCells = 0;
+
+	int unknCount, fullCount, unknCountPost;
+	int i, n;
+	int min, max;
+	int num;
+	static int lne = 0;
+	debp("line: %d\n", ++lne);
+	for (n = 0, unknCount = 0, fullCount = 0, unknCountPost = 0; n < line->blockNum; n++) {
+		if ((num = getBlockBounds(line, n, &min, &max, length)) == -1) return IMPOSSIBLE;
+		if (!num)	continue;
+		
+		for (i = min + 1; i < max; i++) {
+			switch (line->cells[i]->state) {
+				 /* * * * * * * *
+				  * It's a '#'	*
+				  * * * * * * * */
+				case STATE_FULL: {
 					fullCount++;
-				}
-				
+					
+					if (fullCount > line->block[n].length) {	//block too long, impossible
+						return IMPOSSIBLE;
+					}
+					break;
+				};
 
-				/* * * * * * * * * * * * * * * * * * *
-				 * Appends a '-' at the end.		 *
-		 		 * * * * * * * * * * * * * * * * * * */
-				if (line->cells[i]->state == STATE_FULL) {	//block must be affixed by a '-', if it's '#' then the block is too long
-					return IMPOSSIBLE;
-				} else
-				if (line->cells[i]->state == STATE_UNKN) {
-					line->cells[i]->state = STATE_BLNK;
-					SolvedCell(i)
-				}
 
-				NextBlock
-				continue;
-				
-			} else {	//If we did find ?'s before, the filling of #'s will be handled when we get to a '?' after the '#'s
-						//Because of that, all we need to do here is check for implied blanks
-				
-				
-				//regardless of which block it is, fill blanks between it and the previous block
-				
-				//find out how many we've identified
-				//TODO
-				if (n == 0) {
-/*					int j;
-					for (j = i - unknCount; j - i < line->block[n].length; j++) {		//skip cells that might belong to the block
-						if (j == puzzle->length[x]) break;					//reached the end of the line, get out
-						if (line->cells[j]->state == STATE_BLNK) break;		//blank means an early break
-					}
-					for (; j < puzzle->length[x]; j++) {
-						line->cells[j]->state = STATE_BLNK;
-						SolvedCell(i)
-					}*/
-				}
-				if (n == line->blockNum - 1) {	//if it's the last block, also check what the farthest index it can reach is, fill blanks after that
-					int j;
-					for (j = i ; j - i < line->block[n].length; j++) {		//skip cells that might belong to the block
-						if (j == puzzle->length[x]) break;					//reached the end of the line, get out
-						if (line->cells[j]->state == STATE_BLNK) break;		//blank means an early break
-					}
-					for (; j < puzzle->length[x]; j++) {
-						line->cells[j]->state = STATE_BLNK;
-						SolvedCell(i)
-					}
-				}
-			
-				continue;		//end of the line, dont bother going anywhere else
-			}		
-		} else
-		if (line->cells[i]->state == STATE_BLNK) {	//== '-' ?
-			if (unknCount == 0) { //passed cells == 0?
-				continue; //do nothing, just move on
-			} else {
-				if (unknCount < line->block[n].length) {	//passed cells < block size?
-					if (checkA(line, n, unknCount, i, puzzle->length[x])) {	//O(N)
-						int j;
-						for (j = i; line->cells[j]->state == STATE_UNKN; j++) {	//set previous unkn cells to blank before continuing
-							line->cells[j]->state = STATE_BLNK;
+
+				 /* * * * * * * *
+				  * It's a '-'	*
+				  * * * * * * * */
+				case STATE_BLNK: {
+					//means the block all has to fit before this index, it's a new max. maybe it should've been detected in getMaxCellIndex?
+					
+					i = max + 1;	//since it should've been detected in getMaxCellIndex, program doesnt know what to do! skip to next block
+					break;	//break unnecessary but looks good
+				};
+
+
+
+				 /* * * * * * * *
+				  * It's a '?'	*
+				  * * * * * * * */
+				default: {
+					if (unknCount == 0) {
+						 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+						  * The min cell was already #, the whole block is known. *
+						  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+						if (fullCount < line->block[n].length) {
+							line->cells[i]->state = STATE_FULL;
 							SolvedCell(i)
-						}
-						continue;	//goto next cell
-					} else {
-						return IMPOSSIBLE;	//impossible
-					}
-				} else {
-					if (checkA(line, n, unknCount, i, puzzle->length[x])) {	//O(N)
-						//not sure yet, complex shit
-						//TODO
-						//
-					} else {
-						if (checkAtilde(line, n, unknCount, i, puzzle->length[x])) {	//O(N)
-							//check difference between passed cells and block length,
-							//stack the block and fill a few #'s
-							//NOTE: if passed cells >> blocksize, we probably have several blocks in this
-							//space, need to do check to see which blocks can/must fit in this space, which
-							//can/must fit afterward, and stack them
-							//do this with recursive calls of checkA with an increasing "n" increment, after mixing checkA and checkAtilde into one
-							//TODO
-							NextBlock
-							continue;
-						} else {
-							return IMPOSSIBLE;	//impossible
-						}
-					}
-				}
-			}
-		} else {	//== '?'
-			if (fullCount == 0) {	//pre-block unkn's
-				unknCount++;
-			} else {	//post-block unkn's
-				//TODO	check if .. if WHAT?!
-				int regStartPos;
-				int unknCountPost = 0;
-				int j;
-				int limit = length - getMinSumOfBlocksAndBlanks(line, n) + 1;	//+1 for the space after the current block
-				if (limit < i || limit > length) return IMPOSSIBLE;	//the remaining blocks can't fit or n is out of bounds
-				limit = (limit < i + line->block[n].length) ? limit : i + line->block[n].length;	//stop at whichever limit is closer
-
-				/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-				 * Counts the cells that can belong to the block that come after it. *
-				 * Based on the cells that come before and the ones that come after, *
-				 * identifies which ones MUST belong to the block.					 *
-				 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-				for (j = i; j < limit; j++) {	//read from i to limit (non-inclusive)
-					if (line->cells[j]->state == STATE_BLNK) break;	//blank found, block can't go past it - also counts as a limit, so break
-
-					else if (line->cells[j]->state == STATE_UNKN) unknCountPost++;	//one more unknown cell post-block
-
-					else {	//we found a new '#'! this means there's a gap of unknows in between 2 groups of '#'
-						if (unknCount + fullCount + unknCountPost + 1 <= line->block[n].length		//means the cells in the middle must be filled
-						&&  checkA(line, n, unknCount, j - fullCount, puzzle->length[x])) {
-							//find out if the first cluster can belong to the previous block:
-							
-							
-							
-							for (; unknCountPost > 0; unknCountPost--) {	//go back and fill with #'s
-								line->cells[j-unknCountPost]->state = STATE_FULL;
-								fullCount++;
-								SolvedCell(i)
-							}
 							fullCount++;
-						
-						
-							if (fullCount == line->block[n].length) {	//did the previous step fill the whole block?
-								j++;
-								if 		(line->cells[j]->state == STATE_FULL) return IMPOSSIBLE;	//block was supposed to have ended
-								else if	(line->cells[j]->state == STATE_UNKN) {
-									line->cells[j]->state = STATE_BLNK;
-									SolvedCell(i)
-								}
-							}
-							
-							continue;		//and then continue where we left off, but with the block now fuller
-						
-						} else {	//means the cells in the middle might not be filled
-							
-							//TODO
-							
+						} else
+						if (fullCount == line->block[n].length) {
+							line->cells[i]->state = STATE_BLNK;
+							SolvedCell(i)
+							i = max + 1;		//finished block, get out
+						}
+					} else {
+						 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+						  * The min cell was already #, the whole block is known. *
+						  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+						if (fullCount == 0) {
+							unknCount++;
+						} else {
+							unknCountPost++;
 						}
 					}
-				}
-				i = j;
-				//TODO - this is after all cells that can belong to the block have been identified, so now we can find out which ones MUST belong to it
-				
-				i-= 1 + unknCountPost;	//so we start counting the unkns into unknCount for the next block
-				NextBlock
-				continue;
-			}
-			
-			//careful if passed cells >> block length TODO
-			continue;
-		}
-	}
+					break;
+				};
+			}//end-switch
+		}//end-cell-loop
+		
+		//TODO if we get here, check if the block needs solving (i == max, since when we skip cells it's set to max + 1)
+		//and then based on fullcount, unkncount and unkncountpost, check which cells around fullcount we can determine to HAVE to belong to the block
+		
+	}//end-block-loop
+	
+
+	//TODO after all the block-based cell-filling, check for blanks that can be filled, although this might be doable inside the loop, we'll see
+	
 	return solvedCells;
 }
 #undef IMPOSSIBLE
 #undef NextBlock
+#undef SolvedCell
+#undef Skip
 
 //note: check to make sure that sum of blocks + blanks is <= line length in getPuzzle: if a line is not, just quit since puzzle is impossible
 
@@ -292,8 +221,8 @@ void FreePuzzle(Puzzle* puzzle) {	//O(Lr*Lc) + O(Lc) = O((Lr+1)*Lc) = O(Lr*Lc) =
 
 
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-  * getMinSumOfBlocksAndBlanks:	O(N)	Adds up the sizes of all blocks, and then adds (blocknum - 1)	*
-  * 									for the mandatory amount of blanks.								*
+  * getMinSumOfBlocksAndBlanks:	O(N)	Adds up the sizes of all blocks AFTER the current one, and then *
+  * 									adds (blocknum - 1) for the mandatory amount of blanks.			*
   *																										*
   * @param Line* :						line to get sum of												*
   * @param int :						block index to start on											*
@@ -304,7 +233,27 @@ int getMinSumOfBlocksAndBlanks(Line* line, int n) {
 	for (i = n; i < line->blockNum; i++) {	//O(N - n) = O(N) worst case
 		count += line->block[i].length;
 	}
-	return count + (line->blockNum - n - 1);	//mandatory spaces
+	return count + (line->blockNum - n - 1);	//mandatory spaces, 1 for every block after n
+}
+
+
+
+/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+  * getMinSumOfBlocksAndBlanksPrev:	O(N)	Adds up the sizes of all blocks BEFORE the current one, and then*
+  * 										adds (blocknum - 1) for the mandatory amount of blanks.			*
+  *																											*
+  * @param Line* :							line to get sum of												*
+  * @param int :							block index to start on											*
+  *	@return int :							sum; 															*
+  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+int getMinSumOfBlocksAndBlanksPrev(Line* line, int n) {
+	if (n == 0) return 0;
+	
+	int i, count = 0;
+	for (i = n - 1; i >= 0; i--) {	//O(N - n) = O(N) worst case
+		count += line->block[i].length;
+	}
+	return count + n;	//mandatory spaces, 1 for every block before n (which is = n)
 }
 
 
@@ -370,7 +319,7 @@ int stackline(Line* line, int length) {
   * =   O(N²*(B+1))                                 , dN²/dL >> d(B+1)/dL                   *
   * =   O(N²)           	 	                                               	            *
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-	int sum = getMinSumOfBlocksAndBlanks(line, 0);	//O(N)
+	int sum = getMinSumOfBlocksAndBlanks(line, 0);	//O(N) 
 	int cap = getLengthOfLargestBlock(line);	//O(N)
 		
 	if (sum > length) {
@@ -497,9 +446,6 @@ Cell* PickCell(Puzzle* puzzle) {	//worst case: O(Lr*Lc) = O(L²)		, average is m
   *							solver stack. Does this until all solutions have been found.				*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
-
-	ExportSolution(puzzle, stdout);
-
 	while (!(IsStackEmpty(stack[ROW]) && IsStackEmpty(stack[COL])) && unsolvedCellCount > 0) {
 /*		if (!IsStackEmpty(stack[ROW])) {
 			line = Pop(stack[ROW]);
@@ -523,10 +469,11 @@ void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
 //		unsolvedCellCount -= a;
 	}
 	
-	ExportSolution(puzzle, stdout);
-	exit(0);
-	
-	if (unsolvedCellCount > 0) {/*
+//	ExportSolution(puzzle, stdout);
+
+		debp("%d\n", unsolvedCellCount);
+
+	if (unsolvedCellCount > 0) {
 		if (stack[CELL] == NULL) stack[CELL] = CreateStack();
 		
 		int row = 0, col = 0;
@@ -536,7 +483,7 @@ void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
 		Push(stack[ROW], (void*) &puzzle->line[ROW][row]);
 		Push(stack[COL], (void*) &puzzle->line[COL][col]);
 		solve(puzzle, stack, unsolvedCellCount - 1);
-		while (!IsStackEmpty(cellstack)) {
+		while (!IsStackEmpty(stack[CELL])) {
 			((Cell*) Pop(stack[CELL]))->state = STATE_UNKN;
 		}
 		
@@ -544,12 +491,12 @@ void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
 		Push(stack[ROW], (void*) &puzzle->line[ROW][row]);
 		Push(stack[COL], (void*) &puzzle->line[COL][col]);
 		solve(puzzle, stack, unsolvedCellCount - 1);
-		while (!IsStackEmpty(cellstack)) {
+		while (!IsStackEmpty(stack[CELL])) {
 			((Cell*) Pop(stack[CELL]))->state = STATE_UNKN;
 		}
 		
 		pick->state = STATE_UNKN;
-*/	} else
+	} else
 	if (unsolvedCellCount == 0) {
 		ClearStack(stack[ROW]);	//could just not push perpendicular lines that are already
 		ClearStack(stack[COL]);	//solved instead of clearing stacks here
@@ -576,12 +523,19 @@ void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
   *							information for a puzzle before the program is allowed to go into the more	*
   *							complete algorithm.	For more information check the stackline function.		*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-int presolve(Puzzle* puzzle) {	//O((Lr+Lc)*N²) = O(2*L*N²) = O(L*N²)
-	int i, unsolvedCellCount = puzzle->length[ROW] * puzzle->length[COL];
-	//O(Lr*N²)
-	for (i = 0; i < puzzle->length[ROW]; i++) unsolvedCellCount -= stackline(&puzzle->line[ROW][i], puzzle->length[ROW]);	
-	//O(Lc*N²)
-	for (i = 0; i < puzzle->length[COL]; i++) unsolvedCellCount -= stackline(&puzzle->line[COL][i], puzzle->length[COL]);	
+int presolve(Puzzle* puzzle) {	//O(L*N²)
+	int unsolvedCellCount = puzzle->length[ROW] * puzzle->length[COL];
+	int i, x;
+	
+	for (x = ROW; x < AXES; x++) {	//O((Lr+Lc)*N²) = O(2*L*N²) = O(L*N²)
+		for (i = 0; i < puzzle->length[x]; i++) {	//O(Lr|Lc * N²) = O(L*N²)
+			if (unsolvedCellCount > 0) {
+				unsolvedCellCount -= stackline(&puzzle->line[x][i], puzzle->length[x]);
+			} else {
+				return -1;
+			}
+		}
+	}
 	
 	return unsolvedCellCount;
 }
@@ -639,6 +593,7 @@ int main (int n, char** args) {
 	
 	int unsolvedCellCount;
 	if ((unsolvedCellCount = presolve(puzzle)) != 0) {	//O(L*N²)
+		debp("%d\n", unsolvedCellCount);
 		Stack** stack = InitStacks(puzzle);	//O(L)
 		solve(puzzle, stack, unsolvedCellCount);		//O(TODO)
 		FreeStacks(stack);	//O(1)
@@ -648,7 +603,7 @@ int main (int n, char** args) {
 	FreePuzzle(puzzle);	//O(L²)
 	ExportSolution(NULL, NULL);	//O(1)
 	
-	return 0;	
+	return 0;
 }
 
 //maybe track amount of unsolved cells per line, and if a line is fully solved, don't push it onto the stack!
