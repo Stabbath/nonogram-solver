@@ -93,7 +93,7 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack, int x) {
 					} else
 					if (line->cells[i]->state == STATE_UNKN) {
 						line->cells[i]->state = STATE_FULL;
-						solvedCells++; debp("solved a cell\n");
+						solvedCells++;
 					}
 					fullCount++;
 				}
@@ -107,7 +107,7 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack, int x) {
 				} else
 				if (line->cells[i]->state == STATE_UNKN) {
 					line->cells[i]->state = STATE_BLNK;
-					solvedCells++;	debp("solved a cell\n");
+					solvedCells++;
 				}
 
 				NextBlock
@@ -119,7 +119,9 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack, int x) {
 				
 				//regardless of which block it is, fill blanks between it and the previous block
 				
-				//find out how many we've identified 
+				//find out how many we've identified
+				//TODO
+				
 
 				if (n == line->blockNum - 1) {	//if it's the last block, also check what the farthest index it can reach is, fill blanks after that
 					int j;
@@ -134,18 +136,18 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack, int x) {
 				}
 			
 				continue;		//end of the line, dont bother going anywhere else
-			}
+			}		
 		} else
 		if (line->cells[i]->state == STATE_BLNK) {	//== '-' ?
 			if (unknCount == 0) { //passed cells == 0?
-				
+				continue; //do nothing, just move on
 			} else {
 				if (unknCount < line->block[n].length) {	//passed cells < block size?
 					if (checkA(line, n, unknCount, i, puzzle->length[x])) {	//O(N)
 						int j;
 						for (j = i; line->cells[j]->state == STATE_UNKN; j++) {	//set previous unkn cells to blank before continuing
 							line->cells[j]->state = STATE_BLNK;
-							solvedCells++;	debp("solved a cell\n");
+							solvedCells++;
 						}
 						continue;	//goto next cell
 					} else {
@@ -177,6 +179,8 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack, int x) {
 			if (fullCount == 0) {	//pre-block unkn's
 				unknCount++;
 			} else {	//post-block unkn's
+				//TODO	check if .. if WHAT?!
+				int regStartPos;
 				int unknCountPost = 0;
 				int j;
 				int limit = length - getMinSumOfBlocksAndBlanks(line, n) + 1;	//+1 for the space after the current block
@@ -189,21 +193,25 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack, int x) {
 				 * identifies which ones MUST belong to the block.					 *
 				 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 				for (j = i; j < limit; j++) {	//read from i to limit (non-inclusive)
-					if (line->cells[j]->state == STATE_BLNK) {
-						break;	//blank found, block can't go past it - also counts as a limit, so break
-					} else
-					if (line->cells[j]->state == STATE_UNKN) {
-						unknCountPost++;	//one more unknown post-block
-					} else {
+					if (line->cells[j]->state == STATE_BLNK) break;	//blank found, block can't go past it - also counts as a limit, so break
+
+					else if (line->cells[j]->state == STATE_UNKN) unknCountPost++;	//one more unknown cell post-block
+
+					else {	//we found a new '#'! this means there's a gap of unknows in between 2 groups of '#'
 						if (unknCount + fullCount + unknCountPost + 1 <= line->block[n].length) {	//means the cells in the middle must be filled
+							
+							//find out if the first cluster can belong to the previous block:
+							
+							
+							
 							for (; unknCountPost > 0; unknCountPost--) {	//go back and fill with #'s
 								line->cells[j-unknCountPost]->state = STATE_FULL;
 								fullCount++;
 								solvedCells++;
 							}
 							fullCount++;
-							
-							
+						
+						
 							if (fullCount == line->block[n].length) {	//did the previous step fill the whole block?
 								j++;
 								if 		(line->cells[j]->state == STATE_FULL) return IMPOSSIBLE;	//block was supposed to have ended
@@ -214,17 +222,18 @@ int solveline(Puzzle* puzzle, Line* line, Stack* stack, int x) {
 							}
 							
 							continue;		//and then continue where we left off, but with the block now fuller
-
-						} else {	//means the cells in the middle CAN'T be filled
-							
+						
+						} else {	//means the cells in the middle might not be filled
 							
 							//TODO
 							
 						}
 					}
 				}
-				//TODO - this is after all cells that can belong to the block have been identified
+				i = j;
+				//TODO - this is after all cells that can belong to the block have been identified, so now we can find out which ones MUST belong to it
 				
+				i-= 1 + unknCountPost;	//so we start counting the unkns into unknCount for the next block
 				NextBlock
 				continue;
 			}
@@ -617,4 +626,14 @@ int main (int n, char** args) {
 //possibly use a single stack, defining the axis that's currently being used in a static int in a short function, instead of repeatedly passing it along
 //is it really necessary to have 2 stacks? they store line pointers, so it shouldn't matter if it's a row or a column, except for the issue with line length
 
+/*
+	QUESTIONS:
+	//use a metasolve function that is mostly the same as solve so we don't have to carry the 'cellstack' through the first solve? most of the information is gathered with the first solve, there's no need for the extra memory usage since cellstack isnt even used there
 
+
+
+
+
+
+
+*/
