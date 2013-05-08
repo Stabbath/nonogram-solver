@@ -29,65 +29,11 @@
 
 
 
-
-void ConditionalPush(Stack* stack, Line* line) {
-//	if (line->unsolvedCells > 0) {
-		Push(stack, (void*) line);
-/*	} else {
-		return;
-	}*/
-}
-
-
-int getMinSumOfBlocksAndBlanksPrev(Line* line, int n);
-
-
-
-
-
-/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-  * getMinSumOfBlocksAndBlanks:	O(N)	Adds up the sizes of all blocks AFTER the current one, and then *
-  * 									adds (blocknum - 1) for the mandatory amount of blanks. Also	*
-  *										counts the current block's size.								*
-  *																										*
-  * @param Line* :						line to get sum of												*
-  * @param int :						block index to start on											*
-  *	@return int :						sum; will return a negative number if n is out of bounds		*
-  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-int getMinSumOfBlocksAndBlanks(Line* line, int n) {
-	int i, count = 0;
-	for (i = n; i < line->blockNum; i++) {	//O(N - n) = O(N) worst case
-		count = count + line->block[i].length;
-	}
-	return count + (line->blockNum - n - 1);	//mandatory spaces, 1 for every block after n
-}
-
-
-
-/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-  * getMinSumOfBlocksAndBlanksPrev:	O(N)	Adds up the sizes of all blocks BEFORE the current one, and then*
-  * 										adds (blocknum - 1) for the mandatory amount of blanks.			*
-  *																											*
-  * @param Line* :							line to get sum of												*
-  * @param int :							block index to start on											*
-  *	@return int :							sum; 															*
-  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-int getMinSumOfBlocksAndBlanksPrev(Line* line, int n) {
-	if (n == 0) return 0;
-	
-	int i, count = 0;
-	for (i = n - 1; i >= 0; i--) {	//O(N - n) = O(N) worst case
-		count += line->block[i].length;
-	}
-	return count + n;	//mandatory spaces, 1 for every block before n (which is = n)
-}
-
-
-
 int getBlockBounds(Line* line, int n, int* rmin, int* rmax, int length) {
 	int i, j, num;
 	int min = getMinSumOfBlocksAndBlanksPrev(line, n);			//inclusive min
-	int max = length - getMinSumOfBlocksAndBlanks(line, n) - line->block[n].length;		//inclusive max
+	int max = length - (getMinSumOfBlocksAndBlanks(line, n) - line->block[n].length) - 1;		//inclusive max
+	
 	
 	//TODO in the middle of all this min/max detection: what about #'s that might belong to the next or previous block inside of the min-max zone?
 	//and what if several other blocks can fit inside the min-max zone?
@@ -102,18 +48,20 @@ int getBlockBounds(Line* line, int n, int* rmin, int* rmax, int length) {
 			}
 		}
 	}
-	for (j = min; j <= max; j++) {					//adjust max
+	for (j = min + 1; j <= max; j++) {					//adjust max
 		if (line->cells[j]->state == STATE_BLNK) {
 			max = j - 1;
 		}
-	}	
+	}
 	
-	if (max - min + 1 <	line->block[n].length) {	//+1 because inclusive; if this is true the block can't fit anywhere
+	if (max - min + 1 <	line->block[n].length) {	//+1 because max is inclusive; if this is true the block can't fit anywhere
+		debp("problum!\n");
+		debp("%d - %d + 1 < %d\n", max, min, line->block[n].length);
 		return -1;
 	}
 	
 	*rmin = min;
-	*rmin = max;
+	*rmax = max;
 	
 	return 1;
 }
@@ -148,6 +96,8 @@ int solveline(Puzzle* puzzle, Stack** stack, int x) {
 	for (n = 0, unknCount = 0, fullCount = 0, unknCountPost = 0; n < line->blockNum; n++) {
 		if ((num = getBlockBounds(line, n, &min, &max, length)) == -1) return IMPOSSIBLE;
 		if (!num)	continue;
+		
+		if (min >= length || max < 0) return IMPOSSIBLE;
 		
 		for (i = min + 1; i < max; i++) {
 			switch (line->cells[i]->state) {
@@ -209,7 +159,7 @@ int solveline(Puzzle* puzzle, Stack** stack, int x) {
 				};
 			}//end-switch
 		}//end-cell-loop
-		
+
 		//TODO if we get here, check if the block needs solving (i == max, since when we skip cells it's set to max + 1)
 		//and then based on fullcount, unkncount and unkncountpost, check which cells around fullcount we can determine to HAVE to belong to the block
 		
@@ -228,48 +178,85 @@ int solveline(Puzzle* puzzle, Stack** stack, int x) {
 //note: check to make sure that sum of blocks + blanks is <= line length in getPuzzle: if a line is not, just quit since puzzle is impossible
 
 
+
+
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-  * FreePuzzle: O(L²)		Just a macro function to clean up main. Frees memory allocated to puzzle.	*
+  * solve: O(TODO)			Solves cells implicitly based on the line's native characteristics			*
+  * 						ie block number and block sizes.											*
   *																										*
-  * @param Puzzle* :		puzzle to destroy															*
+  * @param Puzzle* :		puzzle to solve																*
+  * @param Stack** :		stack array	to use															*
+  * @param int :			number of unsolved cells													*
   *	@noreturn																							*
-  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-void FreePuzzle(Puzzle* puzzle) {	//O(Lr*Lc) + O(Lc) = O((Lr+1)*Lc) = O(Lr*Lc) = O(L²)
-	int i, j;
-	
-	for (i = 0; i < puzzle->length[ROW]; i++){	//O(Lr)
-		for (j = 0; j < puzzle->length[COL]; j++){	//O(Lc)
-			free(puzzle->line[ROW][i].cells[j]);
-		}
-		free(puzzle->line[ROW][i].cells);
-		free(puzzle->line[ROW][i].block);
-	}
-	for (i = 0; i < puzzle->length[COL]; i++){	//O(Lc)
-		free(puzzle->line[COL][i].cells);
-		free(puzzle->line[COL][i].block);
-	}
-	
-	free(puzzle->line[ROW]);
-	free(puzzle->line[COL]);
-	free(puzzle->line);
-	free(puzzle->length);
-	free(puzzle);
-}
-
-
-
-/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-  * getLengthOfLargestBlock: O(N)		Gets the size of the largest block in a line					*
   * 																									*
-  * @param Line* :						line to get largest size from									*
-  *	@return int :						length of largest block											*
+  * @verbose : 				uses solveline for every row in the stacks until they are empty or the 		*
+  * 						puzzle has been solved. If the stacks are emptied before the solution is 	*
+  *							found, selects a STATE_UNKN cell and tests it for both values recursively,	*
+  *							after pushing the row and column that the selected cell belongs to onto the	*
+  *							solver stack. Does this until all solutions have been found.				*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-int getLengthOfLargestBlock(Line* line) {
-	int i, size;
-	for (i = 0, size = 0; i < line->blockNum; i++) {
-		if (line->block[i].length > size)	size = line->block[i].length;
+void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
+	while (!(IsStackEmpty(stack[ROW]) && IsStackEmpty(stack[COL])) && unsolvedCellCount > 0) {
+/*		if (!IsStackEmpty(stack[ROW])) {
+			line = Pop(stack[ROW]);
+			
+			if ((a = solveline(puzzle, line, stack[COL], ROW)) == -1)	return;	//return if impossibility is found
+			
+			if (line == &puzzle->line[ROW][0] || line == &puzzle->line[COL][0]) {	//special case
+				//first blocks of perpendicular lines are known
+			} else
+			if (line == &puzzle->line[ROW][puzzle->length[ROW]-1] || line == &puzzle->line[COL][puzzle->length[COL]-1]) {	//special case
+				//last blocks of perpendicular lines are known				
+			}
+			
+		}*/
+
+		if (!IsStackEmpty(stack[ROW])) {
+			unsolvedCellCount -= solveline(puzzle, stack, ROW);
+		}
+		if (!IsStackEmpty(stack[COL])) {
+			unsolvedCellCount -= solveline(puzzle, stack, COL);
+		}
+//		unsolvedCellCount -= a;
 	}
-	return size;
+	
+//	ExportSolution(puzzle, stdout);
+
+	if (unsolvedCellCount > 0) {
+		if (stack[CELL] == NULL) stack[CELL] = CreateStack();
+		
+		int row = 0, col = 0;
+		Cell* pick = PickCell(puzzle);	//O(L²) TODO but might be improved
+		
+
+		pick->state = STATE_FULL;
+		Push(stack[ROW], (void*) &puzzle->line[ROW][row]);
+		Push(stack[COL], (void*) &puzzle->line[COL][col]);
+		solve(puzzle, stack, unsolvedCellCount - 1);
+		while (!IsStackEmpty(stack[CELL])) {
+			((Cell*) Pop(stack[CELL]))->state = STATE_UNKN;
+		}
+		
+		pick->state = STATE_BLNK;
+		Push(stack[ROW], (void*) &puzzle->line[ROW][row]);
+		Push(stack[COL], (void*) &puzzle->line[COL][col]);
+		solve(puzzle, stack, unsolvedCellCount - 1);
+		while (!IsStackEmpty(stack[CELL])) {
+			((Cell*) Pop(stack[CELL]))->state = STATE_UNKN;
+		}
+		
+		pick->state = STATE_UNKN;
+	} else
+	if (unsolvedCellCount == 0) {
+		ClearStack(stack[ROW]);	//could just not push perpendicular lines that are already
+		ClearStack(stack[COL]);	//solved instead of clearing stacks here
+
+		ExportSolution(puzzle, stdout);
+	} else {
+		//invalid solution, get out
+	}
+	
+	return;
 }
 
 
@@ -411,109 +398,6 @@ int stackline(Line* line, int length) {
 
 
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-  * PickCell: O(L²)		Gets the size of the largest block in a line									*
-  * 																									*
-  * @param Line* :		line to get largest size from													*
-  *	@return int :		length of largest block															*
-  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-Cell* PickCell(Puzzle* puzzle) {	//worst case: O(Lr*Lc) = O(L²)		, average is much much lower though
-	int i, j;						//TODO still, L² is pretty bad.. should think about this
-	for (i = 0; i < puzzle->length[ROW]; i++) {	//O(Lr*Lc)
-		for (j = 0; j < puzzle->length[COL]; j++) {	//O(Lc)
-			if (puzzle->line[ROW][i].cells[j]->state == STATE_UNKN) {
-				return puzzle->line[ROW][i].cells[j];
-			}
-		}
-	}
-	return NULL;
-}
-
-
-
-/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-  * solve: O(TODO)			Solves cells implicitly based on the line's native characteristics			*
-  * 						ie block number and block sizes.											*
-  *																										*
-  * @param Puzzle* :		puzzle to solve																*
-  * @param Stack** :		stack array	to use															*
-  * @param int :			number of unsolved cells													*
-  *	@noreturn																							*
-  * 																									*
-  * @verbose : 				uses solveline for every row in the stacks until they are empty or the 		*
-  * 						puzzle has been solved. If the stacks are emptied before the solution is 	*
-  *							found, selects a STATE_UNKN cell and tests it for both values recursively,	*
-  *							after pushing the row and column that the selected cell belongs to onto the	*
-  *							solver stack. Does this until all solutions have been found.				*
-  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
-	ExportSolution(puzzle, stdout);
-
-	while (!(IsStackEmpty(stack[ROW]) && IsStackEmpty(stack[COL])) && unsolvedCellCount > 0) {
-/*		if (!IsStackEmpty(stack[ROW])) {
-			line = Pop(stack[ROW]);
-			
-			if ((a = solveline(puzzle, line, stack[COL], ROW)) == -1)	return;	//return if impossibility is found
-			
-			if (line == &puzzle->line[ROW][0] || line == &puzzle->line[COL][0]) {	//special case
-				//first blocks of perpendicular lines are known
-			} else
-			if (line == &puzzle->line[ROW][puzzle->length[ROW]-1] || line == &puzzle->line[COL][puzzle->length[COL]-1]) {	//special case
-				//last blocks of perpendicular lines are known				
-			}
-			
-		}*/
-		if (!IsStackEmpty(stack[ROW])) {
-			unsolvedCellCount -= solveline(puzzle, stack, ROW);
-		}
-		if (!IsStackEmpty(stack[COL])) {
-			unsolvedCellCount -= solveline(puzzle, stack, COL);
-		}
-//		unsolvedCellCount -= a;
-	}
-	
-//	ExportSolution(puzzle, stdout);
-
-		debp("%d\n", unsolvedCellCount);
-
-	if (unsolvedCellCount > 0) {
-		if (stack[CELL] == NULL) stack[CELL] = CreateStack();
-		
-		int row = 0, col = 0;
-		Cell* pick = PickCell(puzzle);	//O(L²) TODO but might be improved
-		
-		pick->state = STATE_FULL;
-		Push(stack[ROW], (void*) &puzzle->line[ROW][row]);
-		Push(stack[COL], (void*) &puzzle->line[COL][col]);
-		solve(puzzle, stack, unsolvedCellCount - 1);
-		while (!IsStackEmpty(stack[CELL])) {
-			((Cell*) Pop(stack[CELL]))->state = STATE_UNKN;
-		}
-		
-		pick->state = STATE_BLNK;
-		Push(stack[ROW], (void*) &puzzle->line[ROW][row]);
-		Push(stack[COL], (void*) &puzzle->line[COL][col]);
-		solve(puzzle, stack, unsolvedCellCount - 1);
-		while (!IsStackEmpty(stack[CELL])) {
-			((Cell*) Pop(stack[CELL]))->state = STATE_UNKN;
-		}
-		
-		pick->state = STATE_UNKN;
-	} else
-	if (unsolvedCellCount == 0) {
-		ClearStack(stack[ROW]);	//could just not push perpendicular lines that are already
-		ClearStack(stack[COL]);	//solved instead of clearing stacks here
-
-		ExportSolution(puzzle, stdout);
-	} else {
-		//invalid solution, get out
-	}
-	
-	return;
-}
-
-
-
-/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
   * presolve: O(L*N²)		Calls stackline on every row and on every column once to solve	 			*
   *							the easiest cells, to pave the way for the fuller linesolver.				*
   *																										*
@@ -544,52 +428,15 @@ int presolve(Puzzle* puzzle) {	//O(L*N²)
 
 
 
-/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-  * FreeStacks: O(1)		Just a macro function to clean up main. Frees memory allocated to stacks.	*
-  *																										*
-  * @param Stack** :		stack array to destroy														*
-  *	@noreturn																							*
-  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-void FreeStacks(Stack** stack) {
-	ClearStack(stack[ROW]);
-	ClearStack(stack[COL]);
-	free(stack[ROW]);
-	free(stack[COL]);
-	if (stack[CELL] != NULL) {
-		ClearStack(stack[CELL]);
-		free(stack[CELL]);
-	}
-	free(stack);
-}
-
-
-/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-  * InitStacks: O(L)		Just a macro function to clean up main. Allocates memory to stacks and 		*
-  *							pushes every row and column to its respective stack.						*
-  *																										*
-  * @param Puzzle* :		puzzle to get ROW|COL lengths from											*
-  *	@return	Stack** :		stack array that was created and initialised								*
-  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-Stack** InitStacks(Puzzle* puzzle) {	//O(2L)	= O(L)
-	int i;
-
-	Stack** stack = (Stack**) malloc((AXES+1)*sizeof(Stack*));
-	stack[ROW] = CreateStack();
-	for (i = 0; i < puzzle->length[ROW]; i++)	Push(stack[ROW], (void*) &puzzle->line[ROW][i]);	//O(Lr)
-	stack[COL] = CreateStack();
-	for (i = 0; i < puzzle->length[COL]; i++)	Push(stack[COL], (void*) &puzzle->line[COL][i]);	//O(Lc)
-	stack[CELL] = NULL;	
-
-	return stack;
-}
-
-
-
 //O(L²) + O(L) + O(L*N²) + O(TODO) + O(L²) + O(1) + O(1) =
-//O(2L² + L + 2 + L*N² + TODO)
+//O(2L² + L + 2 + L*N² + TODO) =
+//O(TODO)
 
-int main (int n, char** args) {
-	if (n < 2) errorout(ERROR_ARGS, "No file name was given.");
+
+int main (int num, char** args) {
+	if (num < 2) errorout(ERROR_ARGS, "No file name was given.");
+	
+	if (strlen(args[1]) >= MAXPATH) errorout(ERROR_ARGS, "Filename too long.");
 	
 	Puzzle* puzzle = getPuzzle(args[1]);	//O(L²)
 	
@@ -601,6 +448,7 @@ int main (int n, char** args) {
 	}
 	
 	FreePuzzle(puzzle);	//O(L²)
+	
 	ExportSolution(NULL, NULL);	//O(1)
 	
 	return 0;
@@ -610,15 +458,3 @@ int main (int n, char** args) {
 
 //possibly use a single stack, defining the axis that's currently being used in a static int in a short function, instead of repeatedly passing it along
 //is it really necessary to have 2 stacks? they store line pointers, so it shouldn't matter if it's a row or a column, except for the issue with line length
-
-/*
-	QUESTIONS:
-	//use a metasolve function that is mostly the same as solve so we don't have to carry the 'cellstack' through the first solve? most of the information is gathered with the first solve, there's no need for the extra memory usage since cellstack isnt even used there
-
-
-
-
-
-
-
-*/

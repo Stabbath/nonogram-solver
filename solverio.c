@@ -70,7 +70,9 @@ void ExportConfig(Puzzle* puzzle, FILE* stream) {
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 void ExportSolution(Puzzle* puzzle, FILE* stream) {	//O(L²)
 	static int solutions = 0;
-
+	
+	
+	
 	if (puzzle == NULL) {
 		if (solutions == 0) {
 			//there are no solutions
@@ -241,6 +243,8 @@ Puzzle* getPuzzle(char* name) {	//O(L²)
 	FILE* fp = fopen(name, "r");
 	if (fp == NULL)	errorout(ERROR_404, "Wrong directory or name for puzzle config.");
 	Puzzle* puzzle = (Puzzle*) malloc(sizeof(Puzzle));
+	puzzle->name = name;
+	
 	if (puzzle == NULL) errorout(ERROR_MEM, "Could not create Puzzle.");
 	
 	if ((puzzle->length = (int*) malloc(AXES*sizeof(int))) == NULL)	errorout(ERROR_MEM, "Could not create lengths.");
