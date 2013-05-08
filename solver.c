@@ -58,11 +58,63 @@ Se não estiver comentada, não há segfault mas enche '-'s em sitios em que nao
 
 
 
+ideia:
+possivel algoritmo, que talvez seja menos eficiente mas mais facil de implementar:
+testamos todas as possiveis combinaçoes de posicoes para os blocos de uma linha. Vamos escrevendo (ou num clone da linha ou na propria linha mas depois desfazemos as mudanças se houverem problemas) os blocos na linha, e vamos testando os valores que já estavam na linha. Cada vez que chegamos ao fim da linha sem impossibilidades, guardamos a linha numa lista ou numa pilha. Se acontecer que para todas as posições de um bloco há uma certa célula que está sempre cheia, então ela tem de estar cheia.
+
+Podemos guardar os mins e maxs de cada bloco à mesma, sendo que seriam descobertos por este método! E quando voltarmos à linha uma segunda vez, pode-se usar logo esses minimos e maximos como pontos de começo para voltar a encontrar todas as possiveis posições de todos os blocos da linha. Há outras optimizações que dá para inventar, e é mais fácil de implementar do que tudo o que já experimentámos já que não involve o que estavams a fazer, o que é basicamente um estudo matemático das condições das células para qualquer disposição geral da linha.
+
+Em termos de complexidade.. O pior caso para isto significa 2 blocos de tamanho 1:
+Para uma linha de exemplo de tamanho 10, completamente desconhecida:
+??????????
+#-#-------
+#--#------
+#---#-----
+#----#----
+#-----#---
+#------#--
+#-------#-
+#--------#
+-#-#------
+-#--#-----
+-#---#----
+-#----#---
+-#-----#--
+-#------#-
+-#-------#
+--#-#-----
+--#--#----
+--#---#---
+--#----#--
+--#-----#-
+--#------#
+---#-#----
+---#--#---
+---#---#--
+---#----#-
+---#-----#
+----#-#---
+----#--#--
+----#---#-
+----#----#
+-----#-#--
+-----#--#-
+-----#---#
+------#-#-
+------#--#
+-------#-#
+= 36 combinações
+
+Como deves ter percebido isto é (n+1)n/2, com n = L - S, para comprimento de linha = L e S = soma de todos os blocos e espaços menos o primeiro bloco. Neste caso S = 2 => (10-2+1)*(10-2)/2 = 9*8/2 = 9*4 = 36
+
+Por isso a complexidade para o pior caso, que é este que acabei de exemplificar só que para qualquer L, é O( (L-S+1)*(L-S)/2  ) = O( (L-1)*(L-2)/2 ) = O( (L²-3L+2)/2 ) = O(L²)
+
+Quadrático em L é melhor até do que o stacklines que era O(L*N²) (mas continuamos a precisar desse para termos uma base decente para o puzzle)
 
 
+Isto também está mais associado ao método que o professor tinha mencionado na aula de dúvidas da semana passada. Ele disse que em vez de olhar para as células como estávamos podiamos também olhar para o problema como sendo uma questão das diferentes combinações de posições dos blocos.
 
-
-
+Que achas? Eu acho que é o melhor.
 
 
 */
