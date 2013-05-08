@@ -18,7 +18,7 @@
   * TODO: Finish line solver				*
   *	 && Brute force change tracker/reverter *
   *	 && solver line/row pushing 			*
-  * * * * * * * * * * * * * * * * x* * * * * */
+  * * * * * * * * * * * * * * * * * * * * * */
 
 
 
@@ -42,16 +42,57 @@ void ConditionalPush(Stack* stack, Line* line) {
 int getMinSumOfBlocksAndBlanksPrev(Line* line, int n);
 
 
+
+
+
+/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+  * getMinSumOfBlocksAndBlanks:	O(N)	Adds up the sizes of all blocks AFTER the current one, and then *
+  * 									adds (blocknum - 1) for the mandatory amount of blanks. Also	*
+  *										counts the current block's size.								*
+  *																										*
+  * @param Line* :						line to get sum of												*
+  * @param int :						block index to start on											*
+  *	@return int :						sum; will return a negative number if n is out of bounds		*
+  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+int getMinSumOfBlocksAndBlanks(Line* line, int n) {
+	int i, count = 0;
+	for (i = n; i < line->blockNum; i++) {	//O(N - n) = O(N) worst case
+		count = count + line->block[i].length;
+	}
+	return count + (line->blockNum - n - 1);	//mandatory spaces, 1 for every block after n
+}
+
+
+
+/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+  * getMinSumOfBlocksAndBlanksPrev:	O(N)	Adds up the sizes of all blocks BEFORE the current one, and then*
+  * 										adds (blocknum - 1) for the mandatory amount of blanks.			*
+  *																											*
+  * @param Line* :							line to get sum of												*
+  * @param int :							block index to start on											*
+  *	@return int :							sum; 															*
+  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+int getMinSumOfBlocksAndBlanksPrev(Line* line, int n) {
+	if (n == 0) return 0;
+	
+	int i, count = 0;
+	for (i = n - 1; i >= 0; i--) {	//O(N - n) = O(N) worst case
+		count += line->block[i].length;
+	}
+	return count + n;	//mandatory spaces, 1 for every block before n (which is = n)
+}
+
+
+
 int getBlockBounds(Line* line, int n, int* rmin, int* rmax, int length) {
 	int i, j, num;
-	int min = getMinSumOfBlocksAndBlanksPrev(line, n);					//inclusive min
-	int max = length - getMinSumOfBlocksAndBlanks(line, n) - 1;			//inclusive max
-	debp("%d = %d - %d - 1 for n=%d\n", max, length, getMinSumOfBlocksAndBlanks(line, n), n);
+	int min = getMinSumOfBlocksAndBlanksPrev(line, n);			//inclusive min
+	int max = length - getMinSumOfBlocksAndBlanks(line, n) - line->block[n].length;		//inclusive max
+	
 	//TODO in the middle of all this min/max detection: what about #'s that might belong to the next or previous block inside of the min-max zone?
 	//and what if several other blocks can fit inside the min-max zone?
 	/*falta delimitar maxs e mins pelas celulas cheias a uma distancia <= tamanho do bloco	!!!*/
 	
-//	printf("%d min %d max; %d n %d length\n", min,max,n,length);
 	for (i = min, num = 0; i <= max; i++) {		//adjust min
 		if (line->cells[i]->state == STATE_BLNK) {
 			if (i - min < line->block[n].length) {
@@ -61,17 +102,15 @@ int getBlockBounds(Line* line, int n, int* rmin, int* rmax, int length) {
 			}
 		}
 	}
-	if (num == 0) {		//block doesnt fit anywhere
-//		debp("problum\n");
-		return -1;
-	}
 	for (j = min; j <= max; j++) {					//adjust max
 		if (line->cells[j]->state == STATE_BLNK) {
 			max = j - 1;
 		}
+	}	
+	
+	if (max - min + 1 <	line->block[n].length) {	//+1 because inclusive; if this is true the block can't fit anywhere
+		return -1;
 	}
-	
-	
 	
 	*rmin = min;
 	*rmin = max;
@@ -105,8 +144,7 @@ int solveline(Puzzle* puzzle, Stack** stack, int x) {
 	int i, n;
 	int min, max;
 	int num;
-	static int lne = 0;
-	debp("line: %d\n", ++lne);
+
 	for (n = 0, unknCount = 0, fullCount = 0, unknCountPost = 0; n < line->blockNum; n++) {
 		if ((num = getBlockBounds(line, n, &min, &max, length)) == -1) return IMPOSSIBLE;
 		if (!num)	continue;
@@ -120,7 +158,7 @@ int solveline(Puzzle* puzzle, Stack** stack, int x) {
 					fullCount++;
 					
 					if (fullCount > line->block[n].length) {	//block too long, impossible
-						return IMPOSSIBLE;
+					//	return IMPOSSIBLE;		//TODO - rethink this! what if there's a chance more than 1 block can fit in the gap?
 					}
 					break;
 				};
@@ -221,44 +259,6 @@ void FreePuzzle(Puzzle* puzzle) {	//O(Lr*Lc) + O(Lc) = O((Lr+1)*Lc) = O(Lr*Lc) =
 
 
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-  * getMinSumOfBlocksAndBlanks:	O(N)	Adds up the sizes of all blocks AFTER the current one, and then *
-  * 									adds (blocknum - 1) for the mandatory amount of blanks.			*
-  *																										*
-  * @param Line* :						line to get sum of												*
-  * @param int :						block index to start on											*
-  *	@return int :						sum; will return a negative number if n is out of bounds		*
-  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-int getMinSumOfBlocksAndBlanks(Line* line, int n) {
-	int i, count = 0;
-	for (i = n; i < line->blockNum; i++) {	//O(N - n) = O(N) worst case
-		count += line->block[i].length;
-	}
-	return count + (line->blockNum - n - 1);	//mandatory spaces, 1 for every block after n
-}
-
-
-
-/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-  * getMinSumOfBlocksAndBlanksPrev:	O(N)	Adds up the sizes of all blocks BEFORE the current one, and then*
-  * 										adds (blocknum - 1) for the mandatory amount of blanks.			*
-  *																											*
-  * @param Line* :							line to get sum of												*
-  * @param int :							block index to start on											*
-  *	@return int :							sum; 															*
-  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-int getMinSumOfBlocksAndBlanksPrev(Line* line, int n) {
-	if (n == 0) return 0;
-	
-	int i, count = 0;
-	for (i = n - 1; i >= 0; i--) {	//O(N - n) = O(N) worst case
-		count += line->block[i].length;
-	}
-	return count + n;	//mandatory spaces, 1 for every block before n (which is = n)
-}
-
-
-
-/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
   * getLengthOfLargestBlock: O(N)		Gets the size of the largest block in a line					*
   * 																									*
   * @param Line* :						line to get largest size from									*
@@ -321,7 +321,7 @@ int stackline(Line* line, int length) {
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 	int sum = getMinSumOfBlocksAndBlanks(line, 0);	//O(N) 
 	int cap = getLengthOfLargestBlock(line);	//O(N)
-		
+	
 	if (sum > length) {
 		return IMPOSSIBLE;	//impossible
 	}
@@ -446,6 +446,8 @@ Cell* PickCell(Puzzle* puzzle) {	//worst case: O(Lr*Lc) = O(L²)		, average is m
   *							solver stack. Does this until all solutions have been found.				*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
+	ExportSolution(puzzle, stdout);
+
 	while (!(IsStackEmpty(stack[ROW]) && IsStackEmpty(stack[COL])) && unsolvedCellCount > 0) {
 /*		if (!IsStackEmpty(stack[ROW])) {
 			line = Pop(stack[ROW]);
@@ -536,7 +538,7 @@ int presolve(Puzzle* puzzle) {	//O(L*N²)
 			}
 		}
 	}
-	
+
 	return unsolvedCellCount;
 }
 
@@ -593,12 +595,10 @@ int main (int n, char** args) {
 	
 	int unsolvedCellCount;
 	if ((unsolvedCellCount = presolve(puzzle)) != 0) {	//O(L*N²)
-		debp("%d\n", unsolvedCellCount);
 		Stack** stack = InitStacks(puzzle);	//O(L)
 		solve(puzzle, stack, unsolvedCellCount);		//O(TODO)
 		FreeStacks(stack);	//O(1)
 	}
-	
 	
 	FreePuzzle(puzzle);	//O(L²)
 	ExportSolution(NULL, NULL);	//O(1)

@@ -52,6 +52,7 @@ void getBlockLengths(Puzzle*, FILE*, int);
 void errorout(char* type, char* details);
 void checkblankln(FILE* fp);
 Puzzle* getPuzzle(char*);
+void ExportConfig(Puzzle*, FILE*);
 
 Line* CloneLine(Line*, int);
 Puzzle* ClonePuzzle(Puzzle*);
