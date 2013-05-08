@@ -45,6 +45,34 @@ int getBlockBounds(Line* line, int n, int* rmin, int* rmax, int length) {
 */
 
 
+
+
+/*
+
+NOTAS:
+
+a secção que mete '-'s entre os maximos e os minimos nao está a funcionar muito bem. 
+Se estiver comentada, há segfault nalgum sitio. 
+Se não estiver comentada, não há segfault mas enche '-'s em sitios em que nao devia.
+
+
+
+
+
+
+
+
+
+
+
+*/
+
+
+
+
+
+
+
 #define NextBlock 		n++;unknCount=0;fullCount=0;
 #define SolvedCell(a)	solvedCells++;Push(stack[CELL],line->cells[a]);ConditionalPush(stack[y],&puzzle->line[y][a]);
 #define IMPOSSIBLE		puzzle->length[ROW]*puzzle->length[COL]
