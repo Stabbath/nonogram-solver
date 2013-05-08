@@ -31,6 +31,8 @@ typedef struct _cell {
 
 typedef struct _block {
 	int length;
+	int min;
+	int max;
 } Block;
 
 typedef struct _line {

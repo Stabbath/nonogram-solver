@@ -28,35 +28,12 @@
 			//(store a variable in each line struct, that gets updated as we solve each cell)
 
 
-
+/*
 int getBlockBounds(Line* line, int n, int* rmin, int* rmax, int length) {
-	int i, j, num;
 	int min = getMinSumOfBlocksAndBlanksPrev(line, n);			//inclusive min
-	int max = length - (getMinSumOfBlocksAndBlanks(line, n) - line->block[n].length) - 1;		//inclusive max
-	
-	
-	//TODO in the middle of all this min/max detection: what about #'s that might belong to the next or previous block inside of the min-max zone?
-	//and what if several other blocks can fit inside the min-max zone?
-	/*falta delimitar maxs e mins pelas celulas cheias a uma distancia <= tamanho do bloco	!!!*/
-	
-	for (i = min, num = 0; i <= max; i++) {		//adjust min
-		if (line->cells[i]->state == STATE_BLNK) {
-			if (i - min < line->block[n].length) {
-				min = i;
-			} else {
-				if (num++ > 0) return 0;	//means there's 2+ places where the block might be, nothing we can do, go to next block
-			}
-		}
-	}
-	for (j = min + 1; j <= max; j++) {					//adjust max
-		if (line->cells[j]->state == STATE_BLNK) {
-			max = j - 1;
-		}
-	}
+	int max = length - (getMinSumOfBlocksAndBlanks(line, n) - line->block[n].length) - 1;		//inclusive max	
 	
 	if (max - min + 1 <	line->block[n].length) {	//+1 because max is inclusive; if this is true the block can't fit anywhere
-		debp("problum!\n");
-		debp("%d - %d + 1 < %d\n", max, min, line->block[n].length);
 		return -1;
 	}
 	
@@ -65,7 +42,7 @@ int getBlockBounds(Line* line, int n, int* rmin, int* rmax, int length) {
 	
 	return 1;
 }
-
+*/
 
 
 #define NextBlock 		n++;unknCount=0;fullCount=0;
@@ -88,85 +65,123 @@ int solveline(Puzzle* puzzle, Stack** stack, int x) {
 	int y = (x == ROW ? COL : ROW);
 	int solvedCells = 0;
 
-	int unknCount, fullCount, unknCountPost;
+//	int unknCount, fullCount, unknCountPost;
 	int i, n;
+	int absmin = 0, absmax = length - 1 - (getMinSumOfBlocksAndBlanks(line, 0) - line->block[0].length);
 	int min, max;
-	int num;
 
-	for (n = 0, unknCount = 0, fullCount = 0, unknCountPost = 0; n < line->blockNum; n++) {
-		if ((num = getBlockBounds(line, n, &min, &max, length)) == -1) return IMPOSSIBLE;
-		if (!num)	continue;
+	//maybe track if a block is fully solved, or how many cells are solved. if it's fully solved, we can adjust the min's of the next block by the cell where it ends
+	//we can loop through every block and adjust the next one's min's and the previous one's max's based on that!
+
+	for (n = 0; n < line->blockNum; n++) {
+		min = absmin; max = absmax;
 		
-		if (min >= length || max < 0) return IMPOSSIBLE;
+		/* -------------------------------------------
+		   this section skips all blanks on either end 
+		   -------------------------------------------*/
+		for (i = min; i <= max; i++) {
+			if (line->cells[i]->state == STATE_BLNK) {
+				min = i + 1;
+			} else
+			if (line->cells[i]->state == STATE_FULL) {
+//				do line->cells[++i]->state = STATE_FULL; while (i < line->block[n].length - 1);
+				break;
+			} else {
+				break;
+			}
+		}
+		for (i = max; i >= min; i--) {
+			if (line->cells[i]->state == STATE_BLNK) {
+				max = i - 1;
+			} else
+			if (line->cells[i]->state == STATE_FULL) {
+//				do line->cells[--i]->state = STATE_FULL; while (i > 1);
+				break;
+			} else {
+				break;
+			}
+		}
 		
-		for (i = min + 1; i < max; i++) {
-			switch (line->cells[i]->state) {
-				 /* * * * * * * *
-				  * It's a '#'	*
-				  * * * * * * * */
-				case STATE_FULL: {
-					fullCount++;
-					
-					if (fullCount > line->block[n].length) {	//block too long, impossible
-					//	return IMPOSSIBLE;		//TODO - rethink this! what if there's a chance more than 1 block can fit in the gap?
-					}
-					break;
-				};
 
 
 
-				 /* * * * * * * *
-				  * It's a '-'	*
-				  * * * * * * * */
-				case STATE_BLNK: {
-					//means the block all has to fit before this index, it's a new max. maybe it should've been detected in getMaxCellIndex?
-					
-					i = max + 1;	//since it should've been detected in getMaxCellIndex, program doesnt know what to do! skip to next block
-					break;	//break unnecessary but looks good
-				};
-
-
-
-				 /* * * * * * * *
-				  * It's a '?'	*
-				  * * * * * * * */
-				default: {
-					if (unknCount == 0) {
-						 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-						  * The min cell was already #, the whole block is known. *
-						  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-						if (fullCount < line->block[n].length) {
-							line->cells[i]->state = STATE_FULL;
-							SolvedCell(i)
-							fullCount++;
-						} else
-						if (fullCount == line->block[n].length) {
-							line->cells[i]->state = STATE_BLNK;
-							SolvedCell(i)
-							i = max + 1;		//finished block, get out
-						}
-					} else {
-						 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-						  * The min cell was already #, the whole block is known. *
-						  * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-						if (fullCount == 0) {
-							unknCount++;
-						} else {
-							unknCountPost++;
-						}
-					}
-					break;
-				};
-			}//end-switch
-		}//end-cell-loop
-
-		//TODO if we get here, check if the block needs solving (i == max, since when we skip cells it's set to max + 1)
-		//and then based on fullcount, unkncount and unkncountpost, check which cells around fullcount we can determine to HAVE to belong to the block
+		/* this section makes sure there is only space for 1 block here 
+		int space = max - min + 1;
+		if (space < line->block[n].length) return IMPOSSIBLE;
+		else {
+			int isOnlyBlock = 1;
+			if (n > 0) {
+				if (space < line->block[n].length + line->block[n - 1].length) {
+					isOnlyBlock = 0;
+				}
+			}
+			if (n != line->blockNum - 1) {
+				if (space < line->block[n].length + line->block[n + 1].length) {
+					isOnlyBlock = 0;
+				}				
+			}
+			
+			if (!isOnlyBlock) continue;	//for now, skip block, but later we should find a way to further examine the cells based on which ones are #
+		}*/
 		
+		
+
+
+		if (line->block[n].min < min) line->block[n].min = min;
+		if (line->block[n].max > max) line->block[n].max = max;
+		
+		absmin += line->block[n].length + 1;
+		absmax += line->block[n].length + 1;
 	}//end-block-loop
 	
 
+
+
+	
+	/* this section fills blanks in between maxes and mins of different blocks */
+	for (i = 0; i < line->block[0].min; i++) {
+		if (line->cells[i]->state == STATE_UNKN) {
+			line->cells[i]->state = STATE_BLNK;
+			SolvedCell(i)
+		} else
+		if (line->cells[i]->state == STATE_FULL) {
+			return IMPOSSIBLE;
+		}
+	}
+	for (n = 0; n < line->blockNum - 1; n++) {
+		if (line->block[n].max < line->block[n+1].min) {
+			for (i = line->block[n].max + 1; i < line->block[n+1].min; i++) {
+				if (line->cells[i]->state == STATE_UNKN) {
+					line->cells[i]->state = STATE_BLNK;
+					SolvedCell(i)
+				} else
+				if (line->cells[i]->state == STATE_FULL) {
+					return IMPOSSIBLE;
+				}
+			}
+		}
+	}
+	for (i = line->block[line->blockNum - 1].max; i < length; i++) {
+		if (line->cells[i]->state == STATE_UNKN) {
+			line->cells[i]->state = STATE_BLNK;
+			SolvedCell(i)
+		} else
+		if (line->cells[i]->state == STATE_FULL) {
+			return IMPOSSIBLE;
+		}
+	}
+
+
+
+
+
 	//TODO after all the block-based cell-filling, check for blanks that can be filled, although this might be doable inside the loop, we'll see
+	if (max - min + 1 < 2*line->block[n].length) {	//means we can have a superposition. this check might be unnecessary
+		for (i = min; i <= max; i++) {
+			
+			
+		}
+	}
 	
 	return solvedCells;
 }
@@ -196,39 +211,27 @@ int solveline(Puzzle* puzzle, Stack** stack, int x) {
   *							solver stack. Does this until all solutions have been found.				*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
+	debp("tsk\n");
 	while (!(IsStackEmpty(stack[ROW]) && IsStackEmpty(stack[COL])) && unsolvedCellCount > 0) {
-/*		if (!IsStackEmpty(stack[ROW])) {
-			line = Pop(stack[ROW]);
-			
-			if ((a = solveline(puzzle, line, stack[COL], ROW)) == -1)	return;	//return if impossibility is found
-			
-			if (line == &puzzle->line[ROW][0] || line == &puzzle->line[COL][0]) {	//special case
-				//first blocks of perpendicular lines are known
-			} else
-			if (line == &puzzle->line[ROW][puzzle->length[ROW]-1] || line == &puzzle->line[COL][puzzle->length[COL]-1]) {	//special case
-				//last blocks of perpendicular lines are known				
-			}
-			
-		}*/
-
+		debp("okok\n");
 		if (!IsStackEmpty(stack[ROW])) {
 			unsolvedCellCount -= solveline(puzzle, stack, ROW);
 		}
 		if (!IsStackEmpty(stack[COL])) {
 			unsolvedCellCount -= solveline(puzzle, stack, COL);
 		}
-//		unsolvedCellCount -= a;
 	}
 	
-//	ExportSolution(puzzle, stdout);
+	debp("tskoasd\n");
+	
+		ExportSolution(puzzle, stdout);
 
 	if (unsolvedCellCount > 0) {
-		if (stack[CELL] == NULL) stack[CELL] = CreateStack();
+/*		if (stack[CELL] == NULL) stack[CELL] = CreateStack();
 		
 		int row = 0, col = 0;
 		Cell* pick = PickCell(puzzle);	//O(L²) TODO but might be improved
 		
-
 		pick->state = STATE_FULL;
 		Push(stack[ROW], (void*) &puzzle->line[ROW][row]);
 		Push(stack[COL], (void*) &puzzle->line[COL][col]);
@@ -245,7 +248,7 @@ void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
 			((Cell*) Pop(stack[CELL]))->state = STATE_UNKN;
 		}
 		
-		pick->state = STATE_UNKN;
+		pick->state = STATE_UNKN;*/
 	} else
 	if (unsolvedCellCount == 0) {
 		ClearStack(stack[ROW]);	//could just not push perpendicular lines that are already
@@ -433,6 +436,12 @@ int presolve(Puzzle* puzzle) {	//O(L*N²)
 //O(TODO)
 
 
+void getBasicMinsAndMaxes(Line* line) {
+	
+	
+}
+
+
 int main (int num, char** args) {
 	if (num < 2) errorout(ERROR_ARGS, "No file name was given.");
 	
@@ -442,7 +451,8 @@ int main (int num, char** args) {
 	
 	int unsolvedCellCount;
 	if ((unsolvedCellCount = presolve(puzzle)) != 0) {	//O(L*N²)
-		Stack** stack = InitStacks(puzzle);	//O(L)
+		ExportSolution(puzzle, stdout);
+		Stack** stack = InitStacks(puzzle);	//O(L)		
 		solve(puzzle, stack, unsolvedCellCount);		//O(TODO)
 		FreeStacks(stack);	//O(1)
 	}

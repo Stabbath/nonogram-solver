@@ -1,6 +1,15 @@
 #include <stdlib.h>
 #include "stacks.h"
 
+struct _element {
+	Item* item;
+	struct _element* next;
+};
+
+struct _stack {
+	Element* top;
+};
+
 Stack* CreateStack() {
 	Stack* stack = (Stack*) malloc(sizeof(Stack));
 	stack->top = NULL;

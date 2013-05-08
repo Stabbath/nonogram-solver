@@ -269,5 +269,15 @@ Puzzle* getPuzzle(char* name) {	//O(L²)
 		errorout(ERROR_BADFORMAT, "File did not end when expected.");
 	}
 
+	int i, j, n;
+	for (j = ROW; j != COL; j = COL) {
+		for (i = 0; i < puzzle->length[ROW]; i++) {
+			for (n = 0; n < puzzle->line[j][i].blockNum; n++) {
+				puzzle->line[j][i].block[n].min = 0;
+				puzzle->line[j][i].block[n].max = puzzle->length[(j == ROW ? COL : ROW)];
+			}
+		}
+	}
+
 	return puzzle;
 }
