@@ -15,6 +15,8 @@
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 int getMinSumOfBlocksAndBlanks(Line* line, int n) {
 	int i, count = 0;
+	if (line->block[0].length == 0) return 0;
+	
 	for (i = n; i < line->blockNum; i++) {	//O(N - n) = O(N) worst case
 		count = count + line->block[i].length;
 	}

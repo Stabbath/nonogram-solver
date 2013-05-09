@@ -255,8 +255,8 @@ Puzzle* getPuzzle(char* name) {	//O(L²)
 	checkblankln(fp);				//3rd line - must be blank
 
 	if ((puzzle->line = (Line**) malloc(AXES*sizeof(Line*))) == NULL)	errorout(ERROR_MEM, "Could not create lines.");	
-	if ((puzzle->line[ROW] = (Line*) malloc(puzzle->length[COL]*sizeof(Line))) == NULL)	errorout(ERROR_MEM, "Could not create rows.");
-	if ((puzzle->line[COL] = (Line*) malloc(puzzle->length[ROW]*sizeof(Line))) == NULL)	errorout(ERROR_MEM, "Could not create cols.");
+	if ((puzzle->line[ROW] = (Line*) malloc(puzzle->length[ROW]*sizeof(Line))) == NULL)	errorout(ERROR_MEM, "Could not create rows.");
+	if ((puzzle->line[COL] = (Line*) malloc(puzzle->length[COL]*sizeof(Line))) == NULL)	errorout(ERROR_MEM, "Could not create cols.");
 
 	//O(L²) routines
 	readBlockLenghts(puzzle, fp, ROW);	//next L lines have row block lengths
@@ -268,7 +268,6 @@ Puzzle* getPuzzle(char* name) {	//O(L²)
 	if (fgets(buffer, sizeof(buffer), fp) != NULL) {	//file must end after previous blank line
 		errorout(ERROR_BADFORMAT, "File did not end when expected.");
 	}
-
 
 	/*get basic mins and maxes for each block*/
 	int i, j, n, min, max, length;

@@ -20,6 +20,10 @@
   *	 && solver line/row pushing 			*
   * * * * * * * * * * * * * * * * * * * * * */
 
+/*
+	TODO: problem: lines that have a 0-length block will say that they have 0 blocks!
+*/
+
 
 
 //	time complexity of checking if a line is already solved: O(L) per line => O(L²*L) = O(L³) for the whole puzzle
@@ -48,6 +52,125 @@ int getBlockBounds(Line* line, int n, int* rmin, int* rmax, int length) {
 
 
 /*
+n = 1, L = 6
+possibilidades = 6
+n = 2, L = 6
+possibilidades = +4 +3 +2 +1 = 10
+#-#---	
+#--#--
+#---#-
+#----#
+n = 3. L = 6
+possibilidades = 4
+#-#-#-
+#-#--#
+#--#-#
+-#-#-#
+
+n = 1, L = 8
+possibilidades = 8
+n = 2, L = 8
+possibilidades = 10
+#-#---
+#--#--
+#---#-
+#----#
+-#-#--
+-#--#-
+-#---#
+--#-#-
+--#--#
+---#-#
+n = 3. L = 8
+possibilidades = 20
+#-#-#---
+#-#--#--
+#-#---#-
+#-#----#
+#--#-#--
+#--#--#-
+#--#---#
+#---#-#-
+#---#--#
+#----#-#
+-#-#-#--
+4+3+2+1+3+2+1+2+1
+
+??????????
+#-#-#-----	//6
+#-#--#----
+#-#---#---
+#-#----#--
+#-#-----#-
+#-#------#
+#--#-#----	//5
+#--#--#---
+#--#---#--
+#--#----#-
+#--#-----#
+#---#-#---	//4
+#---#--#--
+#---#---#-
+#---#----#
+#----#-#--	//3
+#----#--#-
+#----#---#
+#-----#-#-	//2
+#-----#--#
+#------#-#	//1
+
+-#-#-#----	//+5+4+3+2+1
+-#-#--#---
+-#-#---#--
+-#-#----#-
+-#-#-----#
+-#--#-#---
+-#--#--#--
+-#--#---#-
+-#--#----#
+-#---#-#--
+
+--#-#-#---	//+4+3+2+1
+---#-#-#--	//+3+2+1
+----#-#-#-	//+2+1
+-----#-#-#	//+1
+
+
+
+
+-#-#------
+-#--#-----
+-#---#----
+-#----#---
+-#-----#--
+-#------#-
+-#-------#
+--#-#-----
+--#--#----
+--#---#---
+--#----#--
+--#-----#-
+--#------#
+---#-#----
+---#--#---
+---#---#--
+---#----#-
+---#-----#
+----#-#---
+----#--#--
+----#---#-
+----#----#
+-----#-#--
+-----#--#-
+-----#---#
+------#-#-
+------#--#
+-------#-#
+
+
+
+
+
 
 NOTAS:
 
@@ -131,10 +254,11 @@ void FreeLine(Line* line, int length) {
 }
 
 
+#define MODE_NO -1
 #define MODE_GET 0
 #define MODE_RESET 1
 
-Line* MergeBlockPositions(Line* line, int length, int mode) {
+Line* MergeBlockPositions(Line* line, int length, int mode) {	//O(L)
 	static Line* solution = NULL;
 	int i;
 	
@@ -160,13 +284,12 @@ Line* MergeBlockPositions(Line* line, int length, int mode) {
 			solution->block[i].min = line->block[i].min;
 			solution->block[i].max = line->block[i].max;
 		}
+		
 		solution->cells = (Cell**) malloc(length*sizeof(Cell*));
 		for (i = 0; i < length; i++) {
 			solution->cells[i] = (Cell*) malloc(sizeof(Cell));
 			solution->cells[i]->state = line->cells[i]->state;
 		}
-
-
 
 	} else {	//if it's not the first time, then we have to update the solution based on mismatches with the new version of the line
 		/* every cell in this version of the line that mismatches the previously held solution gets set to unknown */
@@ -177,7 +300,6 @@ Line* MergeBlockPositions(Line* line, int length, int mode) {
 		}
 	}
 
-	
 	return solution;
 }
 
@@ -193,7 +315,7 @@ Line* MergeBlockPositions(Line* line, int length, int mode) {
   * @param int :			last cell of the current test position for this block (inclusive)			*
   *	@noreturn :																							*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-void ExamineBlocks(Line* line, int n, int length, int start, Stack* cellstack) {	
+void ExamineBlocks(Line* line, int n, int length, int start, Stack* cellstack) {
 	int i, count = 0;
 	
 	/* fill this block's current position's cells */
@@ -216,7 +338,7 @@ void ExamineBlocks(Line* line, int n, int length, int start, Stack* cellstack) {
 			count++;
 		}
 	}
-	if (i < length) {	//ending blank
+	if (i < length - 1) {	//ending blank
 		if (line->cells[start+1]->state == STATE_FULL) return;
 		if (line->cells[start+1]->state == STATE_UNKN) {
 			line->cells[start+1]->state = STATE_BLNK;
@@ -225,7 +347,8 @@ void ExamineBlocks(Line* line, int n, int length, int start, Stack* cellstack) {
 		}
 	}
 
-	
+
+
 	if (n < line->blockNum - 1) {	//not all blocks are in a position yet, go deeper
 		/* test every possible position of the remaining blocks */
 		int min = line->block[n+1].min;
@@ -235,7 +358,6 @@ void ExamineBlocks(Line* line, int n, int length, int start, Stack* cellstack) {
 			ExamineBlocks(line, n + 1, length, i, cellstack);
 		}
 	}
-	
 	else {	//all blocks are in a position, time to test them
 		MergeBlockPositions(line, length, -1);
 	}
@@ -244,6 +366,8 @@ void ExamineBlocks(Line* line, int n, int length, int start, Stack* cellstack) {
 	while (count-- > 0) {
 		((Cell*) Pop(cellstack))->state = STATE_UNKN;
 	}
+	
+	return;
 }
 
 
@@ -263,6 +387,12 @@ void ExamineBlocks(Line* line, int n, int length, int start, Stack* cellstack) {
   * @param int :			ROW|COL - coordinate of this line											*
   *	@return int :			number of solved cells, or -1 if an impossibility was discovered.			*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+  /*
+  
+  
+  
+  
+  */
 int solveline(Puzzle* puzzle, Stack** stack, int x) {
 	Line* line = Pop(stack[x]);
 	int length = puzzle->length[opAxis(x)];
@@ -270,7 +400,7 @@ int solveline(Puzzle* puzzle, Stack** stack, int x) {
 	int i;
 	
 	MergeBlockPositions(line, length, -1);
-	
+
 	/* start recursive analysis of block positions */
 	int min = line->block[0].min;
 	int max = line->block[0].max;
@@ -279,13 +409,13 @@ int solveline(Puzzle* puzzle, Stack** stack, int x) {
 		Stack* st = CreateStack();
 		ExamineBlocks(line, 0, length, i, st);
 		while (!IsStackEmpty(st)) Pop(st);
+		free(st);
 	}
-	
+
 	Line* solution = MergeBlockPositions(NULL, length, MODE_GET);
 	for (i = 0; i < length; i++) {
 		line->cells[i]->state = solution->cells[i]->state;
 	}
-	
 	MergeBlockPositions(NULL, length, MODE_RESET);
 	
 	return solvedCells;
@@ -412,7 +542,7 @@ int stackline(Line* line, int length) {
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 	int sum = getMinSumOfBlocksAndBlanks(line, 0);	//O(N) 
 	int cap = getLengthOfLargestBlock(line);	//O(N)
-	
+
 	if (sum > length) {
 		return IMPOSSIBLE;	//impossible
 	}
@@ -516,11 +646,10 @@ int stackline(Line* line, int length) {
 int presolve(Puzzle* puzzle) {	//O(L*N²)
 	int unsolvedCellCount = puzzle->length[ROW] * puzzle->length[COL];
 	int i, x;
-	
 	for (x = ROW; x < AXES; x++) {	//O((Lr+Lc)*N²) = O(2*L*N²) = O(L*N²)
 		for (i = 0; i < puzzle->length[x]; i++) {	//O(Lr|Lc * N²) = O(L*N²)
 			if (unsolvedCellCount > 0) {
-				unsolvedCellCount -= stackline(&puzzle->line[x][i], puzzle->length[x]);
+				unsolvedCellCount -= stackline(&puzzle->line[x][i], puzzle->length[opAxis(x)]);
 			} else {
 				return -1;
 			}
@@ -531,17 +660,9 @@ int presolve(Puzzle* puzzle) {	//O(L*N²)
 }
 
 
-
 //O(L²) + O(L) + O(L*N²) + O(TODO) + O(L²) + O(1) + O(1) =
 //O(2L² + L + 2 + L*N² + TODO) =
 //O(TODO)
-
-
-void getBasicMinsAndMaxes(Line* line) {
-	
-	
-}
-
 
 int main (int num, char** args) {
 	if (num < 2) errorout(ERROR_ARGS, "No file name was given.");
@@ -552,9 +673,11 @@ int main (int num, char** args) {
 	
 	int unsolvedCellCount;
 	if ((unsolvedCellCount = presolve(puzzle)) != 0) {	//O(L*N²)
-		Stack** stack = InitStacks(puzzle);	//O(L)		
+		Stack** stack = InitStacks(puzzle);	//O(L)
 		solve(puzzle, stack, unsolvedCellCount);		//O(TODO)
 		FreeStacks(stack);	//O(1)
+	} else {
+		ExportSolution(puzzle, stdout);
 	}
 	
 	FreePuzzle(puzzle);	//O(L²)
