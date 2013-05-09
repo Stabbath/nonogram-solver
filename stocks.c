@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-//#include <string.h>
 #include "stacks.h"
 #include "solver.h"
 
@@ -76,7 +75,7 @@ void FreePuzzle(Puzzle* puzzle) {	//O(Lr*Lc) + O(Lc) = O((Lr+1)*Lc) = O(Lr*Lc) =
 		free(puzzle->line[ROW][i].block);
 	}
 	for (i = 0; i < puzzle->length[COL]; i++){	//O(Lc)
-		free(puzzle->line[COL][i].cells);
+//		free(puzzle->line[COL][i].cells);	//TODO this was a double free.
 		free(puzzle->line[COL][i].block);
 	}
 	

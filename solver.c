@@ -21,12 +21,10 @@
   * * * * * * * * * * * * * * * * * * * * * */
 
 /*
-	TODO: problem: lines that have a 0-length block will say that they have 0 blocks!
+	TODO: p5 errors out in export solution on the 4th row
 */
 
-
-
-//	time complexity of checking if a line is already solved: O(L) per line => O(L²*L) = O(L³) for the whole puzzle
+//	time complexity of checking if a line is already solved: O(L) per line => O(2L*L) = O(L²) for the whole puzzle
 			//(just loop through all cells and check none are UNKN)
 //	memory complexity for storing if it is already solved:	O(L²) (for whole puzzle) with a time complexity of O(1)
 			//(store a variable in each line struct, that gets updated as we solve each cell)
@@ -52,6 +50,12 @@ int getBlockBounds(Line* line, int n, int* rmin, int* rmax, int length) {
 
 
 /*
+S = (N-1)*(B-1)		//sum of blocks and spaces MINUS the current block
+
+(L-S)*(L-S-B)*(L-S-2B)*...*1
+= 
+
+
 n = 1, L = 6
 possibilidades = 6
 n = 2, L = 6
@@ -293,7 +297,9 @@ Line* MergeBlockPositions(Line* line, int length, int mode) {	//O(L)
 
 	} else {	//if it's not the first time, then we have to update the solution based on mismatches with the new version of the line
 		/* every cell in this version of the line that mismatches the previously held solution gets set to unknown */
+//		debp("testing new solution\n");
 		for (i = 0; i < length; i++) {
+//			debp("%c%c\n", line->cells[i]->state, solution->cells[i]->state);
 			if (line->cells[i]->state != solution->cells[i]->state) {
 				solution->cells[i]->state = STATE_UNKN;
 			}
@@ -339,14 +345,16 @@ void ExamineBlocks(Line* line, int n, int length, int start, Stack* cellstack) {
 		}
 	}
 	if (i < length - 1) {	//ending blank
-		if (line->cells[start+1]->state == STATE_FULL) return;
+		if (line->cells[start+1]->state == STATE_FULL) {
+			while (count-- > 0) ((Cell*) Pop(cellstack))->state = STATE_UNKN;
+			return;
+		}
 		if (line->cells[start+1]->state == STATE_UNKN) {
 			line->cells[start+1]->state = STATE_BLNK;
 			Push(cellstack, line->cells[start+1]);
 			count++;
 		}
 	}
-
 
 
 	if (n < line->blockNum - 1) {	//not all blocks are in a position yet, go deeper
@@ -374,7 +382,7 @@ void ExamineBlocks(Line* line, int n, int length, int start, Stack* cellstack) {
 
 
 #define NextBlock 		n++;unknCount=0;fullCount=0;
-#define SolvedCell(a)	solvedCells++;Push(stack[CELL],line->cells[a]);ConditionalPush(stack[y],&puzzle->line[y][a]);
+#define SolvedCell(a)	solvedCells++;Push(stack[CELL],line->cells[a]);ConditionalPush(stack[opAxis(x)],&puzzle->line[opAxis(x)][a]);
 #define IMPOSSIBLE		puzzle->length[ROW]*puzzle->length[COL]
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
   * solveline:				Solves cells based on the line's native characteristics, ie block number 	*
@@ -413,8 +421,17 @@ int solveline(Puzzle* puzzle, Stack** stack, int x) {
 	}
 
 	Line* solution = MergeBlockPositions(NULL, length, MODE_GET);
+//	debp("final:\n");
 	for (i = 0; i < length; i++) {
-		line->cells[i]->state = solution->cells[i]->state;
+//		debp("%c%c\n", line->cells[i]->state, solution->cells[i]->state);
+		if (line->cells[i]->state != solution->cells[i]->state) {
+			if (line->cells[i]->state == STATE_UNKN) {
+				line->cells[i]->state = solution->cells[i]->state;
+				SolvedCell(i)
+			} else {
+				return IMPOSSIBLE;	//can this even get this far without detection? better safe than sorry though!
+			}
+		}
 	}
 	MergeBlockPositions(NULL, length, MODE_RESET);
 	
@@ -454,7 +471,7 @@ void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
 			unsolvedCellCount -= solveline(puzzle, stack, COL);
 		}
 	}
-	
+
 	ExportSolution(puzzle, stdout);
 
 	if (unsolvedCellCount > 0) {
@@ -651,7 +668,7 @@ int presolve(Puzzle* puzzle) {	//O(L*N²)
 			if (unsolvedCellCount > 0) {
 				unsolvedCellCount -= stackline(&puzzle->line[x][i], puzzle->length[opAxis(x)]);
 			} else {
-				return -1;
+				return unsolvedCellCount;
 			}
 		}
 	}
@@ -664,19 +681,22 @@ int presolve(Puzzle* puzzle) {	//O(L*N²)
 //O(2L² + L + 2 + L*N² + TODO) =
 //O(TODO)
 
-int main (int num, char** args) {
+int main(int num, char** args) {
 	if (num < 2) errorout(ERROR_ARGS, "No file name was given.");
 	
 	if (strlen(args[1]) >= MAXPATH) errorout(ERROR_ARGS, "Filename too long.");
 	
 	Puzzle* puzzle = getPuzzle(args[1]);	//O(L²)
 	
-	int unsolvedCellCount;
-	if ((unsolvedCellCount = presolve(puzzle)) != 0) {	//O(L*N²)
+	int unsolvedCellCount = presolve(puzzle);
+	if (unsolvedCellCount > 0) {	//O(L*N²)
+		ExportConfig(puzzle,stdout);
+		ExportSolution(puzzle, stdout);
 		Stack** stack = InitStacks(puzzle);	//O(L)
 		solve(puzzle, stack, unsolvedCellCount);		//O(TODO)
 		FreeStacks(stack);	//O(1)
-	} else {
+	} else
+	if (unsolvedCellCount == 0) {
 		ExportSolution(puzzle, stdout);
 	}
 	

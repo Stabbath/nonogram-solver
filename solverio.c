@@ -72,7 +72,6 @@ void ExportSolution(Puzzle* puzzle, FILE* stream) {	//O(L²)
 	static int solutions = 0;
 	
 	
-	
 	if (puzzle == NULL) {
 		if (solutions == 0) {
 			//there are no solutions
@@ -136,6 +135,7 @@ void readBlockLenghts(Puzzle* puzzle, FILE* fp, int coord) {	//O(L²)
 			if (puzzle->line[ROW][i].blockNum == 0) {	//special case: 0 means 1 block of 0 length (ie no blocks)
 				if ((puzzle->line[ROW][i].block = (Block*) malloc(sizeof(Block))) == NULL)	errorout(ERROR_MEM, "Could not create *block[ROW].");
 				puzzle->line[ROW][i].block[0].length = 0;
+				puzzle->line[ROW][i].blockNum = 1;
 			} else {
 				errorout(ERROR_BADFORMAT, "Found a negative number.");
 			}
@@ -175,6 +175,7 @@ void readBlockLenghts(Puzzle* puzzle, FILE* fp, int coord) {	//O(L²)
 			if (puzzle->line[COL][i].blockNum == 0) {	//special case: 0 means 1 block of 0 length (ie no blocks)
 				if ((puzzle->line[COL][i].block = (Block*) malloc(sizeof(Block))) == NULL)	errorout(ERROR_MEM, "Could not create *block[COL].");
 				puzzle->line[COL][i].block[0].length = 0;
+				puzzle->line[COL][i].blockNum = 1;
 			} else {
 				errorout(ERROR_BADFORMAT, "Found a negative number.");
 			}
