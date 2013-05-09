@@ -269,12 +269,24 @@ Puzzle* getPuzzle(char* name) {	//O(L²)
 		errorout(ERROR_BADFORMAT, "File did not end when expected.");
 	}
 
-	int i, j, n;
+
+	/*get basic mins and maxes for each block*/
+	int i, j, n, min, max, length;
+	Line* line;
 	for (j = ROW; j != COL; j = COL) {
 		for (i = 0; i < puzzle->length[ROW]; i++) {
-			for (n = 0; n < puzzle->line[j][i].blockNum; n++) {
-				puzzle->line[j][i].block[n].min = 0;
-				puzzle->line[j][i].block[n].max = puzzle->length[(j == ROW ? COL : ROW)];
+			line = &puzzle->line[j][i];
+			length = puzzle->length[opAxis(j)];
+			min = 0;
+			max = length - 1 - (getMinSumOfBlocksAndBlanks(line, 0) - line->block[0].length);
+			for (n = 0; n < line->blockNum; n++) {
+				line->block[n].min = min;
+				line->block[n].max = max;
+				
+				if (n < line->blockNum - 1) {
+					min += line->block[n].length + 1;
+					max += line->block[n + 1].length + 1;
+				}
 			}
 		}
 	}

@@ -120,7 +120,131 @@ Que achas? Eu acho que é o melhor.
 */
 
 
+void FreeLine(Line* line, int length) {
+	int i;
+	for (i = 0; i < length; i++) {
+		free(line->cells[i]);
+	}
+	free(line->cells);
+	free(line->block);
+	free(line);
+}
 
+
+#define MODE_GET 0
+#define MODE_RESET 1
+
+Line* MergeBlockPositions(Line* line, int length, int mode) {
+	static Line* solution = NULL;
+	int i;
+	
+	if (line == NULL) {			//after all merging is done, we need to fetch the solution and then clear alloc'd mem
+		if (mode == MODE_GET) {
+			return solution;
+		} else
+		if (mode == MODE_RESET) {
+			FreeLine(solution, length);
+			solution = NULL;
+			return NULL;
+		}
+	}
+
+
+	if (solution == NULL) {		//line is brand new
+		/* clone the line */
+		solution = (Line*) malloc(sizeof(Line));
+		solution->blockNum = line->blockNum;
+		solution->block = (Block*) malloc(solution->blockNum*sizeof(Block));
+		for (i = 0; i < solution->blockNum; i++) {
+			solution->block[i].length = line->block[i].length;
+			solution->block[i].min = line->block[i].min;
+			solution->block[i].max = line->block[i].max;
+		}
+		solution->cells = (Cell**) malloc(length*sizeof(Cell*));
+		for (i = 0; i < length; i++) {
+			solution->cells[i] = (Cell*) malloc(sizeof(Cell));
+			solution->cells[i]->state = line->cells[i]->state;
+		}
+
+
+
+	} else {	//if it's not the first time, then we have to update the solution based on mismatches with the new version of the line
+		/* every cell in this version of the line that mismatches the previously held solution gets set to unknown */
+		for (i = 0; i < length; i++) {
+			if (line->cells[i]->state != solution->cells[i]->state) {
+				solution->cells[i]->state = STATE_UNKN;
+			}
+		}
+	}
+
+	
+	return solution;
+}
+
+
+/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+  * ExamineBlocks:			Tests every possible block position based on previous block positions, and	*
+  *							attempts to discover implicit cells.										*
+  *																										*
+  * @param Line* :			line whose blocks we're examining											*
+  * @param int :			block index we're on														*
+  * @param int :			length of line																*
+  * @param int :			first cell of the current test position for this block (inclusive)			*
+  * @param int :			last cell of the current test position for this block (inclusive)			*
+  *	@noreturn :																							*
+  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+void ExamineBlocks(Line* line, int n, int length, int start, Stack* cellstack) {	
+	int i, count = 0;
+	
+	/* fill this block's current position's cells */
+	if (start > 0) {	//beginning blank
+		if (line->cells[start-1]->state == STATE_FULL) return;
+		if (line->cells[start-1]->state == STATE_UNKN) {
+			line->cells[start-1]->state = STATE_BLNK;
+			Push(cellstack, line->cells[start-1]);
+			count++;
+		}
+	}
+	for (i = start; i <= start + line->block[n].length - 1; i++) {
+		if (line->cells[i]->state == STATE_BLNK) {
+			while (count-- > 0) ((Cell*) Pop(cellstack))->state = STATE_UNKN;
+			return;
+		}
+		if (line->cells[i]->state == STATE_UNKN) {
+			line->cells[i]->state = STATE_FULL;
+			Push(cellstack, line->cells[i]);
+			count++;
+		}
+	}
+	if (i < length) {	//ending blank
+		if (line->cells[start+1]->state == STATE_FULL) return;
+		if (line->cells[start+1]->state == STATE_UNKN) {
+			line->cells[start+1]->state = STATE_BLNK;
+			Push(cellstack, line->cells[start+1]);
+			count++;
+		}
+	}
+
+	
+	if (n < line->blockNum - 1) {	//not all blocks are in a position yet, go deeper
+		/* test every possible position of the remaining blocks */
+		int min = line->block[n+1].min;
+		int max = line->block[n+1].max;
+		int size = line->block[n+1].length;
+		for (i = min; i <= MIN(max, length - 1) - size; i++) {	//test filling blocksize cells after i = min for every possible block start
+			ExamineBlocks(line, n + 1, length, i, cellstack);
+		}
+	}
+	
+	else {	//all blocks are in a position, time to test them
+		MergeBlockPositions(line, length, -1);
+	}
+
+	/* undo changes made to cells */
+	while (count-- > 0) {
+		((Cell*) Pop(cellstack))->state = STATE_UNKN;
+	}
+}
 
 
 
@@ -141,134 +265,35 @@ Que achas? Eu acho que é o melhor.
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 int solveline(Puzzle* puzzle, Stack** stack, int x) {
 	Line* line = Pop(stack[x]);
-	int length = puzzle->length[x];
-	int y = (x == ROW ? COL : ROW);
+	int length = puzzle->length[opAxis(x)];
 	int solvedCells = 0;
-
-//	int unknCount, fullCount, unknCountPost;
-	int i, n;
-	int absmin = 0, absmax = length - 1 - (getMinSumOfBlocksAndBlanks(line, 0) - line->block[0].length);
-	int min, max;
-
-	//maybe track if a block is fully solved, or how many cells are solved. if it's fully solved, we can adjust the min's of the next block by the cell where it ends
-	//we can loop through every block and adjust the next one's min's and the previous one's max's based on that!
-
-	for (n = 0; n < line->blockNum; n++) {
-		min = absmin; max = absmax;
-		
-		/* -------------------------------------------
-		   this section skips all blanks on either end 
-		   -------------------------------------------*/
-		for (i = min; i <= max; i++) {
-			if (line->cells[i]->state == STATE_BLNK) {
-				min = i + 1;
-			} else
-			if (line->cells[i]->state == STATE_FULL) {
-//				do line->cells[++i]->state = STATE_FULL; while (i < line->block[n].length - 1);
-				break;
-			} else {
-				break;
-			}
-		}
-		for (i = max; i >= min; i--) {
-			if (line->cells[i]->state == STATE_BLNK) {
-				max = i - 1;
-			} else
-			if (line->cells[i]->state == STATE_FULL) {
-//				do line->cells[--i]->state = STATE_FULL; while (i > 1);
-				break;
-			} else {
-				break;
-			}
-		}
-		
-
-
-
-		/* this section makes sure there is only space for 1 block here 
-		int space = max - min + 1;
-		if (space < line->block[n].length) return IMPOSSIBLE;
-		else {
-			int isOnlyBlock = 1;
-			if (n > 0) {
-				if (space < line->block[n].length + line->block[n - 1].length) {
-					isOnlyBlock = 0;
-				}
-			}
-			if (n != line->blockNum - 1) {
-				if (space < line->block[n].length + line->block[n + 1].length) {
-					isOnlyBlock = 0;
-				}				
-			}
-			
-			if (!isOnlyBlock) continue;	//for now, skip block, but later we should find a way to further examine the cells based on which ones are #
-		}*/
-		
-		
-
-
-		if (line->block[n].min < min) line->block[n].min = min;
-		if (line->block[n].max > max) line->block[n].max = max;
-		
-		absmin += line->block[n].length + 1;
-		absmax += line->block[n].length + 1;
-	}//end-block-loop
+	int i;
 	
-
-
-
+	MergeBlockPositions(line, length, -1);
 	
-	/* this section fills blanks in between maxes and mins of different blocks */
-	for (i = 0; i < line->block[0].min; i++) {
-		if (line->cells[i]->state == STATE_UNKN) {
-			line->cells[i]->state = STATE_BLNK;
-			SolvedCell(i)
-		} else
-		if (line->cells[i]->state == STATE_FULL) {
-			return IMPOSSIBLE;
-		}
+	/* start recursive analysis of block positions */
+	int min = line->block[0].min;
+	int max = line->block[0].max;
+	int size = line->block[0].length;
+	for (i = min; i <= MIN(max, length - 1) - size; i++) {	//test filling blocksize cells after i = min for every possible block start
+		Stack* st = CreateStack();
+		ExamineBlocks(line, 0, length, i, st);
+		while (!IsStackEmpty(st)) Pop(st);
 	}
-	for (n = 0; n < line->blockNum - 1; n++) {
-		if (line->block[n].max < line->block[n+1].min) {
-			for (i = line->block[n].max + 1; i < line->block[n+1].min; i++) {
-				if (line->cells[i]->state == STATE_UNKN) {
-					line->cells[i]->state = STATE_BLNK;
-					SolvedCell(i)
-				} else
-				if (line->cells[i]->state == STATE_FULL) {
-					return IMPOSSIBLE;
-				}
-			}
-		}
+	
+	Line* solution = MergeBlockPositions(NULL, length, MODE_GET);
+	for (i = 0; i < length; i++) {
+		line->cells[i]->state = solution->cells[i]->state;
 	}
-	for (i = line->block[line->blockNum - 1].max; i < length; i++) {
-		if (line->cells[i]->state == STATE_UNKN) {
-			line->cells[i]->state = STATE_BLNK;
-			SolvedCell(i)
-		} else
-		if (line->cells[i]->state == STATE_FULL) {
-			return IMPOSSIBLE;
-		}
-	}
-
-
-
-
-
-	//TODO after all the block-based cell-filling, check for blanks that can be filled, although this might be doable inside the loop, we'll see
-	if (max - min + 1 < 2*line->block[n].length) {	//means we can have a superposition. this check might be unnecessary
-		for (i = min; i <= max; i++) {
-			
-			
-		}
-	}
+	
+	MergeBlockPositions(NULL, length, MODE_RESET);
 	
 	return solvedCells;
 }
 #undef IMPOSSIBLE
-#undef NextBlock
 #undef SolvedCell
-#undef Skip
+#undef NextBlock
+
 
 //note: check to make sure that sum of blocks + blanks is <= line length in getPuzzle: if a line is not, just quit since puzzle is impossible
 
@@ -291,9 +316,7 @@ int solveline(Puzzle* puzzle, Stack** stack, int x) {
   *							solver stack. Does this until all solutions have been found.				*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
-	debp("tsk\n");
 	while (!(IsStackEmpty(stack[ROW]) && IsStackEmpty(stack[COL])) && unsolvedCellCount > 0) {
-		debp("okok\n");
 		if (!IsStackEmpty(stack[ROW])) {
 			unsolvedCellCount -= solveline(puzzle, stack, ROW);
 		}
@@ -302,9 +325,7 @@ void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
 		}
 	}
 	
-	debp("tskoasd\n");
-	
-		ExportSolution(puzzle, stdout);
+	ExportSolution(puzzle, stdout);
 
 	if (unsolvedCellCount > 0) {
 /*		if (stack[CELL] == NULL) stack[CELL] = CreateStack();
@@ -531,7 +552,6 @@ int main (int num, char** args) {
 	
 	int unsolvedCellCount;
 	if ((unsolvedCellCount = presolve(puzzle)) != 0) {	//O(L*N²)
-		ExportSolution(puzzle, stdout);
 		Stack** stack = InitStacks(puzzle);	//O(L)		
 		solve(puzzle, stack, unsolvedCellCount);		//O(TODO)
 		FreeStacks(stack);	//O(1)
