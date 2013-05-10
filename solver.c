@@ -262,72 +262,66 @@ Que achas? Eu acho que é o melhor.
 */
 
 
-void FreeLine(Line* line, int length) {
-	int i;
-	for (i = 0; i < length; i++) {
-		free(line->cells[i]);
-	}
-	free(line->cells);
-	free(line->block);
-	free(line);
-
-}
-
-
-#define MODE_NO -1
 #define MODE_GET 0
 #define MODE_RESET 1
+#define MODE_TEST 2
 
 Line* MergeBlockPositions(Line* line, int length, int mode) {	//O(L)
 	static Line* solution = NULL;
 	int i;
 	
-	if (line == NULL) {			//after all merging is done, we need to fetch the solution and then clear alloc'd mem
-		if (mode == MODE_GET) {
-			debp("got %d\n", solution);
-			return solution;
-		} else
-		if (mode == MODE_RESET) {
-			FreeLine(solution, length);
-			debp("%d after free: %d\n");
-			solution = NULL;
+	switch (mode) {
+		case MODE_RESET: {
 			debp("reset %d\n", solution);
-			return NULL;
-		}
-	}
-	if (solution == NULL) {		//line is brand new
-	
-		/* clone the line */
-		solution = (Line*) malloc(sizeof(Line));
-		solution->blockNum = line->blockNum;
-		solution->block = (Block*) malloc(solution->blockNum*sizeof(Block));
-		for (i = 0; i < solution->blockNum; i++) {
-			solution->block[i].length = line->block[i].length;
-			solution->block[i].min = line->block[i].min;
-			solution->block[i].max = line->block[i].max;
-		}
-
-		debp("alloc'd: %d\n",solution);
-		
-//		debp("\n");
-//		debp("\n");
-		solution->cells = (Cell**) malloc(length*sizeof(Cell*));
-		for (i = 0; i < length; i++) {
-			solution->cells[i] = (Cell*) malloc(sizeof(Cell));
-			solution->cells[i]->state = line->cells[i]->state;
-//			debp("%c", solution->cells[i]->state);
-		}
-//		debp("\n");
-//		debp("\n");
-		
-	} else {	//if it's not the first time, then we have to update the solution based on mismatches with the new version of the line
-		/* every cell in this version of the line that mismatches the previously held solution gets set to unknown */
-		debp("testing new solution\n");
-		for (i = 0; i < length; i++) {
-//			debp("%c%c\n", line->cells[i]->state, solution->cells[i]->state);
-			if (line->cells[i]->state != solution->cells[i]->state) {
-				solution->cells[i]->state = STATE_UNKN;
+			for (i = 0; i < length; i++) {
+				free(solution->cells[i]);
 			}
+			free(solution->cells);
+			free(solution->block);
+			free(solution);
+			solution = NULL;
+			break;
+		}
+		case MODE_GET: {
+			debp("get %d\n", solution);
+			break;
+		}
+		case MODE_TEST: {
+			if (solution == NULL) {		//line is brand new
+				/* clone the line */
+				solution = (Line*) malloc(sizeof(Line));
+				solution->blockNum = line->blockNum;
+				solution->block = (Block*) malloc(solution->blockNum*sizeof(Block));
+				for (i = 0; i < solution->blockNum; i++) {
+					solution->block[i].length = line->block[i].length;
+					solution->block[i].min = line->block[i].min;
+					solution->block[i].max = line->block[i].max;
+				}
+
+				debp("alloc'd: %d\n",solution);
+		
+		//		debp("\n");
+		//		debp("\n");
+				solution->cells = (Cell**) malloc(length*sizeof(Cell*));
+				for (i = 0; i < length; i++) {
+					solution->cells[i] = (Cell*) malloc(sizeof(Cell));
+					solution->cells[i]->state = line->cells[i]->state;
+		//			debp("%c", solution->cells[i]->state);
+				}
+		//		debp("\n");
+		//		debp("\n");
+		
+			} else {	//if it's not the first time, then we have to update the solution based on mismatches with the new version of the line
+				/* every cell in this version of the line that mismatches the previously held solution gets set to unknown */
+				debp("test\n");
+				for (i = 0; i < length; i++) {
+		//			debp("%c%c\n", line->cells[i]->state, solution->cells[i]->state);
+					if (line->cells[i]->state != solution->cells[i]->state) {
+						solution->cells[i]->state = STATE_UNKN;
+					}
+				}
+			}
+			break;
 		}
 	}
 	
@@ -408,7 +402,7 @@ void ExamineBlocks(Line* line, int n, int length, int start, Stack* cellstack, i
 			}
 		}
 	}
-
+	
 	if (n < line->blockNum - 1) {	//not all blocks are in a position yet, go deeper
 		/* test every possible position of the remaining blocks */
 		int min = line->block[n+1].min;
@@ -417,9 +411,8 @@ void ExamineBlocks(Line* line, int n, int length, int start, Stack* cellstack, i
 		for (i = min; i <= MIN(max, length - 1) - size; i++) {	//test filling blocksize cells after i = min for every possible block start
 			ExamineBlocks(line, n + 1, length, i, cellstack, min + size - 1);
 		}
-	}
-	else {	//all blocks are in a position, time to test them
-		MergeBlockPositions(line, length, -1);
+	} else {	//all blocks are in a position, time to test them
+		MergeBlockPositions(line, length, MODE_TEST);
 	}
 	
 	/* undo changes made to cells */
@@ -449,38 +442,39 @@ int solveline(Puzzle* puzzle, Stack** stack, int x) {
 	int length = puzzle->length[opAxis(x)];
 	int solvedCells = 0;
 	int i;
-
-//	MergeBlockPositions(line, length, -1);
-
+	
 	/* start recursive analysis of block positions */
 	int min = line->block[0].min;
 	int max = line->block[0].max;
 	int size = line->block[0].length;
-	for (i = min; i <= MIN(max, length - 1) - size; i++) {	//test filling blocksize cells after i = min for every possible block start
+	for (i = min; i <= MIN(max, length - 1) - size + 1; i++) {	//test filling blocksize cells after i = min for every possible block start
 		Stack* st = CreateStack();
 		ExamineBlocks(line, 0, length, i, st, 0);
 		while (!IsStackEmpty(st)) ((Cell*) Pop(st))->state = STATE_UNKN;	//reset just in case TODO recent change, keep an eye on it
 		free(st);
 	}
-
+	
 	Line* solution = MergeBlockPositions(NULL, length, MODE_GET);
+	if (solution == NULL) return IMPOSSIBLE;	//NULL means we didn't succeed at all in the previous loop
 	for (i = 0; i < length; i++) {
 //		debp("%c %d solutin\n", line->cells[i]->state, solution);
-		debp("oh fuck\n");
-		debp("%c%c\n", line->cells[i]->state, solution->cells[i]->state);
+//		debp("oh fuck\n");
+//		debp("%c%c\n", line->cells[i]->state, solution->cells[i]->state);
 //		debp("NOOOOO\n");
 		if (line->cells[i]->state != solution->cells[i]->state) {
 			if (line->cells[i]->state == STATE_UNKN) {
 				line->cells[i]->state = solution->cells[i]->state;
 				SolvedCell(i)
 			} else {
+				MergeBlockPositions(NULL, length, MODE_RESET);
 				return IMPOSSIBLE;	//can this even get this far without detection? better safe than sorry though!
 			}
 		}
 	}
-
-	MergeBlockPositions(NULL, length, MODE_RESET);
-
+	
+	debp("resetting\n");
+	MergeBlockPositions(NULL, length, MODE_RESET);	
+	debp("done resetting\n");
 	return solvedCells;
 }
 #undef IMPOSSIBLE
