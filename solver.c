@@ -230,8 +230,6 @@ Line* MergeBlockPositions(Line* line, int length, int mode) {	//O(L)
 void ExamineBlocks(Line* line, int n, int length, int start, Stack* cellstack, int prevblockend) {
 	int i, count = 0;
 	
-	debp("examining blocks\n");
-	
 	/* fill blanks before position until the prev block's ending index*/
 	if (start > 0) {	//beginning blank
 		if (line->cells[start-1]->state == STATE_FULL) return;
@@ -253,11 +251,9 @@ void ExamineBlocks(Line* line, int n, int length, int start, Stack* cellstack, i
 		}
 	}
 
-		debp("start = %d\n", start);
 	/* fill this block's current position's cells */
 	for (i = start; i <= start + line->block[n].length - 1; i++) {
 		if (line->cells[i]->state == STATE_BLNK) {
-			debp("oops blank!\n");
 			while (count-- > 0) ((Cell*) Pop(cellstack))->state = STATE_UNKN;
 			return;
 		}
@@ -266,7 +262,6 @@ void ExamineBlocks(Line* line, int n, int length, int start, Stack* cellstack, i
 			Push(cellstack, line->cells[i]);
 			count++;
 		}
-		debp("everything ok\n");
 	}
 
 	/* fill blanks after position */	
@@ -302,7 +297,7 @@ void ExamineBlocks(Line* line, int n, int length, int start, Stack* cellstack, i
 		int size = line->block[n+1].length;
 		for (i = min; i <= max - size + 1; i++) {	//test filling blocksize cells after i = min for every possible block start
 //			debp("%d\n",i);
-			ExamineBlocks(line, n + 1, length, i, cellstack, min + size - 1);
+			ExamineBlocks(line, n + 1, length, i, cellstack, i + size - 1);
 		}
 	} else {	//all blocks are in a position, time to test them
 		MergeBlockPositions(line, length, MODE_TEST);
@@ -341,7 +336,6 @@ int solveline(Puzzle* puzzle, Stack** stack, int x) {
 	int max = line->block[0].max;
 	int size = line->block[0].length;
 	for (i = min; i <= max - size + 1; i++) {	//test filling blocksize cells after i = min for every possible block start
-		debp("examining %d\n", i);
 		Stack* st = CreateStack();
 		ExamineBlocks(line, 0, length, i, st, -1);
 		while (!IsStackEmpty(st)) ((Cell*) Pop(st))->state = STATE_UNKN;	//reset just in case
@@ -358,7 +352,6 @@ int solveline(Puzzle* puzzle, Stack** stack, int x) {
 			if (line->cells[i]->state == STATE_UNKN) {
 				line->cells[i]->state = solution->cells[i]->state;
 				SolvedCell(i)
-//				debp("solved cell\n");
 			} else {
 				MergeBlockPositions(NULL, length, MODE_RESET);
 				return IMPOSSIBLE;	//can this even get this far without detection? better safe than sorry though!
@@ -398,11 +391,9 @@ void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
 	while (!(IsStackEmpty(stack[ROW]) && IsStackEmpty(stack[COL])) && unsolvedCellCount > 0) {
 		if (!IsStackEmpty(stack[ROW])) {
 			unsolvedCellCount -= solveline(puzzle, stack, ROW);;
-//			debp("%d unsolved cells\n", unsolvedCellCount);
 		}
 		if (!IsStackEmpty(stack[COL])) {
 			unsolvedCellCount -= solveline(puzzle, stack, COL);
-//			debp("%d unsolved cells\n", unsolvedCellCount);
 		}
 	}
 	debp("%d unsolved\n", unsolvedCellCount);
@@ -439,7 +430,6 @@ void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
 
 		ExportSolution(puzzle, stdout);
 	} else {
-//		debp("hm shit impossible?\n");
 		//invalid solution, get out
 	}
 	
