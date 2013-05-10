@@ -15,47 +15,12 @@
   * * * * * * * * * * * * * * * * * * * * * */
 
  /* * * * * * * * * * * * * * * * * * * * * *
-  * TODO: Finish line solver				*
+  * TODO: Fix ExamineBlocks					*
   *	 && Brute force change tracker/reverter *
   *	 && solver line/row pushing 			*
   * * * * * * * * * * * * * * * * * * * * * */
 
 /*
-	TODO: line solver is not actually finding any solutions!!!
-*/
-
-//	time complexity of checking if a line is already solved: O(L) per line => O(2L*L) = O(L²) for the whole puzzle
-			//(just loop through all cells and check none are UNKN)
-//	memory complexity for storing if it is already solved:	O(L²) (for whole puzzle) with a time complexity of O(1)
-			//(store a variable in each line struct, that gets updated as we solve each cell)
-
-
-/*
-int getBlockBounds(Line* line, int n, int* rmin, int* rmax, int length) {
-	int min = getMinSumOfBlocksAndBlanksPrev(line, n);			//inclusive min
-	int max = length - (getMinSumOfBlocksAndBlanks(line, n) - line->block[n].length) - 1;		//inclusive max	
-	
-	if (max - min + 1 <	line->block[n].length) {	//+1 because max is inclusive; if this is true the block can't fit anywhere
-		return -1;
-	}
-	
-	*rmin = min;
-	*rmax = max;
-	
-	return 1;
-}
-*/
-
-
-
-
-/*
-S = (N-1)*(B-1)		//sum of blocks and spaces MINUS the current block
-
-(L-S)*(L-S-B)*(L-S-2B)*...*1
-= 
-
-
 n = 1, L = 6
 possibilidades = 6
 n = 2, L = 6
@@ -151,46 +116,10 @@ posições possíveis para o 2º bloco: L - Sp - Sn = L - S = L - N*2 - 1
 posicoes possiveis para o 3º bloco: L - S = L - N*2 - 1
 ... nº bloco: L - S 
 
-F = (L - N*2 - 1)^N
+F = (L - N*2 - 1)^N <- need to figure out what the exact expression is
 
 extremos:
     dF/dL = 0
-<=> N*(L-2N-1)^(N-1) = 0
-<=> N = 0 v N = L/2+1
-
-
--#-#------
--#--#-----
--#---#----
--#----#---
--#-----#--
--#------#-
--#-------#
---#-#-----
---#--#----
---#---#---
---#----#--
---#-----#-
---#------#
----#-#----
----#--#---
----#---#--
----#----#-
----#-----#
-----#-#---
-----#--#--
-----#---#-
-----#----#
------#-#--
------#--#-
------#---#
-------#-#-
-------#--#
--------#-#
-
-
-
-
 
 
 NOTAS:
@@ -207,47 +136,6 @@ possivel algoritmo, que talvez seja menos eficiente mas mais facil de implementa
 testamos todas as possiveis combinaçoes de posicoes para os blocos de uma linha. Vamos escrevendo (ou num clone da linha ou na propria linha mas depois desfazemos as mudanças se houverem problemas) os blocos na linha, e vamos testando os valores que já estavam na linha. Cada vez que chegamos ao fim da linha sem impossibilidades, guardamos a linha numa lista ou numa pilha. Se acontecer que para todas as posições de um bloco há uma certa célula que está sempre cheia, então ela tem de estar cheia.
 
 Podemos guardar os mins e maxs de cada bloco à mesma, sendo que seriam descobertos por este método! E quando voltarmos à linha uma segunda vez, pode-se usar logo esses minimos e maximos como pontos de começo para voltar a encontrar todas as possiveis posições de todos os blocos da linha. Há outras optimizações que dá para inventar, e é mais fácil de implementar do que tudo o que já experimentámos já que não involve o que estavams a fazer, o que é basicamente um estudo matemático das condições das células para qualquer disposição geral da linha.
-
-Em termos de complexidade.. O pior caso para isto significa 2 blocos de tamanho 1:
-Para uma linha de exemplo de tamanho 10, completamente desconhecida:
-??????????
-#-#-------
-#--#------
-#---#-----
-#----#----
-#-----#---
-#------#--
-#-------#-
-#--------#
--#-#------
--#--#-----
--#---#----
--#----#---
--#-----#--
--#------#-
--#-------#
---#-#-----
---#--#----
---#---#---
---#----#--
---#-----#-
---#------#
----#-#----
----#--#---
----#---#--
----#----#-
----#-----#
-----#-#---
-----#--#--
-----#---#-
-----#----#
------#-#--
------#--#-
------#---#
-------#-#-
-------#--#
--------#-#
-= 36 combinações
 
 Como deves ter percebido isto é (n+1)n/2, com n = L - S, para comprimento de linha = L e S = soma de todos os blocos e espaços menos o primeiro bloco. Neste caso S = 2 => (10-2+1)*(10-2)/2 = 9*8/2 = 9*4 = 36
 
@@ -303,6 +191,7 @@ Line* MergeBlockPositions(Line* line, int length, int mode) {	//O(L)
 					solution->cells[i]->state = line->cells[i]->state;
 					debp("%c", solution->cells[i]->state);
 				}
+				debp("\n");
 		
 			} else {	//if it's not the first time, then we have to update the solution based on mismatches with the new version of the line
 				/* every cell in this version of the line that mismatches the previously held solution gets set to unknown */
@@ -401,7 +290,8 @@ void ExamineBlocks(Line* line, int n, int length, int start, Stack* cellstack, i
 		int min = line->block[n+1].min;
 		int max = line->block[n+1].max;
 		int size = line->block[n+1].length;
-		for (i = min; i <= MIN(max, length - 1) - size; i++) {	//test filling blocksize cells after i = min for every possible block start
+		for (i = min; i <= max - size + 1; i++) {	//test filling blocksize cells after i = min for every possible block start
+//			debp("%d\n",i);
 			ExamineBlocks(line, n + 1, length, i, cellstack, min + size - 1);
 		}
 	} else {	//all blocks are in a position, time to test them
@@ -431,6 +321,9 @@ void ExamineBlocks(Line* line, int n, int length, int start, Stack* cellstack, i
   *	@return int :			number of solved cells, or -1 if an impossibility was discovered.			*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 int solveline(Puzzle* puzzle, Stack** stack, int x) {
+	static int lns = 0;
+//	debp("ln: %d\n",++lns);
+
 	Line* line = Pop(stack[x]);
 	int length = puzzle->length[opAxis(x)];
 	int solvedCells = 0;
@@ -440,14 +333,16 @@ int solveline(Puzzle* puzzle, Stack** stack, int x) {
 	int min = line->block[0].min;
 	int max = line->block[0].max;
 	int size = line->block[0].length;
-	for (i = min; i <= MIN(max, length - 1) - size + 1; i++) {	//test filling blocksize cells after i = min for every possible block start
+	for (i = min; i <= max - size + 1; i++) {	//test filling blocksize cells after i = min for every possible block start
+//		debp("examining %d\n", i);
 		Stack* st = CreateStack();
-		ExamineBlocks(line, 0, length, i, st, 0);
-		while (!IsStackEmpty(st)) ((Cell*) Pop(st))->state = STATE_UNKN;	//reset just in case TODO recent change, keep an eye on it
+		ExamineBlocks(line, 0, length, i, st, -1);
+		while (!IsStackEmpty(st)) ((Cell*) Pop(st))->state = STATE_UNKN;	//reset just in case
 		free(st);
 	}
 	
 	Line* solution = MergeBlockPositions(NULL, length, MODE_GET);
+//	debp("out of loop: solutionptr is %d \n",solution);
 	if (solution == NULL) return IMPOSSIBLE;	//NULL means we didn't succeed at all in the previous loop
 	debp("final solution:\n");
 	for (i = 0; i < length; i++) {
@@ -456,6 +351,7 @@ int solveline(Puzzle* puzzle, Stack** stack, int x) {
 			if (line->cells[i]->state == STATE_UNKN) {
 				line->cells[i]->state = solution->cells[i]->state;
 				SolvedCell(i)
+//				debp("solved cell\n");
 			} else {
 				MergeBlockPositions(NULL, length, MODE_RESET);
 				return IMPOSSIBLE;	//can this even get this far without detection? better safe than sorry though!
@@ -494,10 +390,12 @@ int solveline(Puzzle* puzzle, Stack** stack, int x) {
 void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
 	while (!(IsStackEmpty(stack[ROW]) && IsStackEmpty(stack[COL])) && unsolvedCellCount > 0) {
 		if (!IsStackEmpty(stack[ROW])) {
-			unsolvedCellCount -= solveline(puzzle, stack, ROW);
+			unsolvedCellCount -= solveline(puzzle, stack, ROW);;
+//			debp("%d unsolved cells\n", unsolvedCellCount);
 		}
 		if (!IsStackEmpty(stack[COL])) {
 			unsolvedCellCount -= solveline(puzzle, stack, COL);
+//			debp("%d unsolved cells\n", unsolvedCellCount);
 		}
 	}
 
@@ -533,6 +431,7 @@ void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
 
 		ExportSolution(puzzle, stdout);
 	} else {
+//		debp("hm shit impossible?\n");
 		//invalid solution, get out
 	}
 	
@@ -563,7 +462,7 @@ int stackline(Line* line, int length) {
   * block has a non-null superposition, means:  N*B = L-1  ,  F(N*(B-L+S)) = N*(B-L+S) =    *
   *	=  L-1 - N*L + N*S																		*
   *																							*
-  *     O(N)  +  max( (O(L), O(N*B), O(N*F(B-L+S)) )										*
+  *     O(N)  +  max( (O(L), O(N*B), O(N*F(B-L+S)) )											*
   * =   O(N + L + L-1 + L-1-N*L+N*S)				, N*B = L-1; -1 are neglibile			*
   * =   O(N + 3L - N*L + N*S)						, S = N*B + N-1	= L-1 + N-1				*
   * =   O(N + (3-N)*L + N*(L+N-2))															*
