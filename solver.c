@@ -272,7 +272,6 @@ Line* MergeBlockPositions(Line* line, int length, int mode) {	//O(L)
 	
 	switch (mode) {
 		case MODE_RESET: {
-			debp("reset %d\n", solution);
 			for (i = 0; i < length; i++) {
 				free(solution->cells[i]);
 			}
@@ -283,7 +282,6 @@ Line* MergeBlockPositions(Line* line, int length, int mode) {	//O(L)
 			break;
 		}
 		case MODE_GET: {
-			debp("get %d\n", solution);
 			break;
 		}
 		case MODE_TEST: {
@@ -298,24 +296,19 @@ Line* MergeBlockPositions(Line* line, int length, int mode) {	//O(L)
 					solution->block[i].max = line->block[i].max;
 				}
 
-				debp("alloc'd: %d\n",solution);
-		
-		//		debp("\n");
-		//		debp("\n");
+				debp("initial solution:\n");
 				solution->cells = (Cell**) malloc(length*sizeof(Cell*));
 				for (i = 0; i < length; i++) {
 					solution->cells[i] = (Cell*) malloc(sizeof(Cell));
 					solution->cells[i]->state = line->cells[i]->state;
-		//			debp("%c", solution->cells[i]->state);
+					debp("%c", solution->cells[i]->state);
 				}
-		//		debp("\n");
-		//		debp("\n");
 		
 			} else {	//if it's not the first time, then we have to update the solution based on mismatches with the new version of the line
 				/* every cell in this version of the line that mismatches the previously held solution gets set to unknown */
-				debp("test\n");
+				debp("testing solution\n");
 				for (i = 0; i < length; i++) {
-		//			debp("%c%c\n", line->cells[i]->state, solution->cells[i]->state);
+					debp("%c%c\n", line->cells[i]->state, solution->cells[i]->state);
 					if (line->cells[i]->state != solution->cells[i]->state) {
 						solution->cells[i]->state = STATE_UNKN;
 					}
@@ -456,11 +449,9 @@ int solveline(Puzzle* puzzle, Stack** stack, int x) {
 	
 	Line* solution = MergeBlockPositions(NULL, length, MODE_GET);
 	if (solution == NULL) return IMPOSSIBLE;	//NULL means we didn't succeed at all in the previous loop
+	debp("final solution:\n");
 	for (i = 0; i < length; i++) {
-//		debp("%c %d solutin\n", line->cells[i]->state, solution);
-//		debp("oh fuck\n");
-//		debp("%c%c\n", line->cells[i]->state, solution->cells[i]->state);
-//		debp("NOOOOO\n");
+		debp("%c%c\n", line->cells[i]->state, solution->cells[i]->state);
 		if (line->cells[i]->state != solution->cells[i]->state) {
 			if (line->cells[i]->state == STATE_UNKN) {
 				line->cells[i]->state = solution->cells[i]->state;
@@ -472,9 +463,7 @@ int solveline(Puzzle* puzzle, Stack** stack, int x) {
 		}
 	}
 	
-	debp("resetting\n");
 	MergeBlockPositions(NULL, length, MODE_RESET);	
-	debp("done resetting\n");
 	return solvedCells;
 }
 #undef IMPOSSIBLE
