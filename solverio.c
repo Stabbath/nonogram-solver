@@ -273,8 +273,8 @@ Puzzle* getPuzzle(char* name) {	//O(L²)
 	/*get basic mins and maxes for each block*/
 	int i, j, n, min, max, length;
 	Line* line;
-	for (j = ROW; j != COL; j = COL) {
-		for (i = 0; i < puzzle->length[ROW]; i++) {
+	for (j = ROW; j < AXES; j++) {
+		for (i = 0; i < puzzle->length[j]; i++) {
 			line = &puzzle->line[j][i];
 			length = puzzle->length[opAxis(j)];
 			min = 0;
@@ -290,6 +290,6 @@ Puzzle* getPuzzle(char* name) {	//O(L²)
 			}
 		}
 	}
-
+	
 	return puzzle;
 }
