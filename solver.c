@@ -21,6 +21,11 @@
   * * * * * * * * * * * * * * * * * * * * * */
 
 /*
+	TODO:ExamineBlocks is incorrectly representing some block combinations (there's unknowns in the middle)
+*/
+
+
+/*
 n = 1, L = 6
 possibilidades = 6
 n = 2, L = 6
@@ -192,7 +197,7 @@ Line* MergeBlockPositions(Line* line, int length, int mode) {	//O(L)
 					debp("%c", solution->cells[i]->state);
 				}
 				debp("\n");
-		
+			
 			} else {	//if it's not the first time, then we have to update the solution based on mismatches with the new version of the line
 				/* every cell in this version of the line that mismatches the previously held solution gets set to unknown */
 				debp("testing solution\n");
@@ -393,10 +398,14 @@ void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
 			unsolvedCellCount -= solveline(puzzle, stack, ROW);;
 //			debp("%d unsolved cells\n", unsolvedCellCount);
 		}
+		ExportSolution(puzzle, stdout);
+
 		if (!IsStackEmpty(stack[COL])) {
 			unsolvedCellCount -= solveline(puzzle, stack, COL);
 //			debp("%d unsolved cells\n", unsolvedCellCount);
 		}
+		ExportSolution(puzzle, stdout);
+
 	}
 
 	ExportSolution(puzzle, stdout);
