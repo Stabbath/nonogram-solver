@@ -260,14 +260,14 @@ void ExamineBlocks(Line* line, int n, int length, int start, Stack* cellstack, i
 	}
 
 	/* fill blanks after position */	
-	if (i < length - 1) {	//terminating blank
-		if (line->cells[i+1]->state == STATE_FULL) {
+	if (i < length) {	//terminating blank
+		if (line->cells[i]->state == STATE_FULL) {
 			while (count-- > 0) ((Cell*) Pop(cellstack))->state = STATE_UNKN;
 			return;
 		}
-		if (line->cells[i+1]->state == STATE_UNKN) {
-			line->cells[i+1]->state = STATE_BLNK;
-			Push(cellstack, line->cells[i+1]);
+		if (line->cells[i]->state == STATE_UNKN) {
+			line->cells[i]->state = STATE_BLNK;
+			Push(cellstack, line->cells[i]);
 			count++;
 		}
 		if (n == line->blockNum - 1) {
