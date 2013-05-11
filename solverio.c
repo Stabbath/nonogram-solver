@@ -291,5 +291,7 @@ Puzzle* getPuzzle(char* name) {	//O(L²)
 		}
 	}
 	
+	fclose(fp);
+	
 	return puzzle;
 }

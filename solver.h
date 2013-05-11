@@ -73,7 +73,7 @@ int		getLengthOfLargestBlock			(Line*);
 void 	FreePuzzle						(Puzzle*);
 void 	FreeStacks						(Stack**);
 Stack** InitStacks						(Puzzle*);
-Cell* 	PickCell						(Puzzle*);
+Cell* 	PickCell						(Puzzle*,	int*,	int*);
 void 	ConditionalPush					(Stack*,	Line*);
 
 #endif

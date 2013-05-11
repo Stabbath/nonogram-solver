@@ -75,7 +75,7 @@ void FreePuzzle(Puzzle* puzzle) {	//O(Lr*Lc) + O(Lc) = O((Lr+1)*Lc) = O(Lr*Lc) =
 		free(puzzle->line[ROW][i].block);
 	}
 	for (i = 0; i < puzzle->length[COL]; i++){	//O(Lc)
-//		free(puzzle->line[COL][i].cells);	//TODO this was a double free.
+		free(puzzle->line[COL][i].cells);
 		free(puzzle->line[COL][i].block);
 	}
 	
@@ -83,6 +83,7 @@ void FreePuzzle(Puzzle* puzzle) {	//O(Lr*Lc) + O(Lc) = O((Lr+1)*Lc) = O(Lr*Lc) =
 	free(puzzle->line[COL]);
 	free(puzzle->line);
 	free(puzzle->length);
+//	free(puzzle->name);
 	free(puzzle);
 }
 
@@ -134,11 +135,13 @@ Stack** InitStacks(Puzzle* puzzle) {	//O(2L)	= O(L)
   * @param Line* :		line to get largest size from													*
   *	@return int :		length of largest block															*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-Cell* PickCell(Puzzle* puzzle) {	//worst case: O(Lr*Lc) = O(L²)		, average is much much lower though
+Cell* PickCell(Puzzle* puzzle, int *row, int *col) {	//worst case: O(Lr*Lc) = O(L²)		, average is much much lower though
 	int i, j;						//TODO still, L² is pretty bad.. should think about this
 	for (i = 0; i < puzzle->length[ROW]; i++) {	//O(Lr*Lc)
 		for (j = 0; j < puzzle->length[COL]; j++) {	//O(Lc)
 			if (puzzle->line[ROW][i].cells[j]->state == STATE_UNKN) {
+				*row = i;
+				*col = j;
 				return puzzle->line[ROW][i].cells[j];
 			}
 		}
@@ -148,7 +151,7 @@ Cell* PickCell(Puzzle* puzzle) {	//worst case: O(Lr*Lc) = O(L²)		, average is m
 
 
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-  * ConditionalPush: O(TODO)	Controls which lines are allowed to be pushed onto the stack, to improve*
+  * ConditionalPush: O(1)		Controls which lines are allowed to be pushed onto the stack, to improve*
   * 							performance.															*
   *																										*
   * @param Stack* :		stack we're pushing to															*

@@ -238,6 +238,7 @@ void ExamineBlocks(Line* line, int n, int length, int start, Stack* cellstack, i
 			Push(cellstack, line->cells[start-1]);
 			count++;
 		}
+		debp("prevblockend: %d\n", prevblockend);
 		for (i = start - 2; i > prevblockend; i--) {		//fill blanks between this block and previous one
 			if (line->cells[i]->state == STATE_UNKN) {
 				line->cells[i]->state = STATE_BLNK;
@@ -296,7 +297,6 @@ void ExamineBlocks(Line* line, int n, int length, int start, Stack* cellstack, i
 		int max = line->block[n+1].max;
 		int size = line->block[n+1].length;
 		for (i = min; i <= max - size + 1; i++) {	//test filling blocksize cells after i = min for every possible block start
-//			debp("%d\n",i);
 			ExamineBlocks(line, n + 1, length, i, cellstack, i + size - 1);
 		}
 	} else {	//all blocks are in a position, time to test them
@@ -403,8 +403,8 @@ void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
 	if (unsolvedCellCount > 0) {
 /*		if (stack[CELL] == NULL) stack[CELL] = CreateStack();
 		
-		int row = 0, col = 0;
-		Cell* pick = PickCell(puzzle);	//O(L²) TODO but might be improved
+		int row, col;
+		Cell* pick = PickCell(puzzle, &row, &col);	//O(L²) TODO but might be improved
 		
 		pick->state = STATE_FULL;
 		Push(stack[ROW], (void*) &puzzle->line[ROW][row]);
