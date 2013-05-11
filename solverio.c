@@ -276,7 +276,7 @@ Puzzle* getPuzzle(char* name) {	//O(L²)
 	for (j = ROW; j < AXES; j++) {
 		for (i = 0; i < puzzle->length[j]; i++) {
 			line = &puzzle->line[j][i];
-			length = puzzle->length[opAxis(j)];
+			length = puzzle->length[!j];
 			min = 0;
 			max = length - 1 - (getMinSumOfBlocksAndBlanks(line, 0) - line->block[0].length);
 			for (n = 0; n < line->blockNum; n++) {

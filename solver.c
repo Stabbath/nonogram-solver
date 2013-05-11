@@ -311,8 +311,7 @@ void ExamineBlocks(Line* line, int n, int length, int start, Stack* cellstack, i
 
 
 
-#define NextBlock 		n++;unknCount=0;fullCount=0;
-#define SolvedCell(a)	solvedCells++;Push(stack[CELL],line->cells[a]);ConditionalPush(stack[opAxis(x)],&puzzle->line[opAxis(x)][a]);
+#define SolvedCell(a)	solvedCells++;Push(stack[CELL],line->cells[a]);ConditionalPush(stack[!x],&puzzle->line[!x][a]);
 #define IMPOSSIBLE		puzzle->length[ROW]*puzzle->length[COL]
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
   * solveline:				Solves cells based on the line's native characteristics, ie block number 	*
@@ -327,7 +326,7 @@ void ExamineBlocks(Line* line, int n, int length, int start, Stack* cellstack, i
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 int solveline(Puzzle* puzzle, Stack** stack, int x) {
 	Line* line = Pop(stack[x]);
-	int length = puzzle->length[opAxis(x)];
+	int length = puzzle->length[!x];
 	int solvedCells = 0;
 	int i;
 	
@@ -364,7 +363,6 @@ int solveline(Puzzle* puzzle, Stack** stack, int x) {
 }
 #undef IMPOSSIBLE
 #undef SolvedCell
-#undef NextBlock
 
 
 //note: check to make sure that sum of blocks + blanks is <= line length in getPuzzle: if a line is not, just quit since puzzle is impossible
@@ -592,7 +590,7 @@ int presolve(Puzzle* puzzle) {	//O(L*N²)
 	for (x = ROW; x < AXES; x++) {	//O((Lr+Lc)*N²) = O(2*L*N²) = O(L*N²)
 		for (i = 0; i < puzzle->length[x]; i++) {	//O(Lr|Lc * N²) = O(L*N²)
 			if (unsolvedCellCount > 0) {
-				unsolvedCellCount -= stackline(&puzzle->line[x][i], puzzle->length[opAxis(x)]);
+				unsolvedCellCount -= stackline(&puzzle->line[x][i], puzzle->length[!x]);
 			} else {
 				return unsolvedCellCount;
 			}

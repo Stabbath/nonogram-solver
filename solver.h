@@ -25,9 +25,6 @@ Por exemplo, se descobrirmos que toda a última linha é composta por #'s, entao
 #define AXES 2
 #define CELL 2
 
-#define opAxis(x)		(x == ROW ? COL : ROW)
-#define MIN(x, y)		(x < y ? x : y)
-
 typedef struct _cell {
 	char state;		//STATE_FULL, STATE_BLNK, STATE_UNKN
 } Cell;
@@ -50,11 +47,6 @@ typedef struct _puzzle {
 	int* length;				//number of rows and columns
 	Line** line;				//2 arrays of lines
 } Puzzle;
-
-
-
-int solveline(Puzzle*, Stack**, int);
-void solve(Puzzle*, Stack**, int);
 
 //solverio.c
 void 	debp				(const char*, 	...);
