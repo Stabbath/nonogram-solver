@@ -77,10 +77,6 @@ void ExportSolution(Puzzle* puzzle, FILE* stream) {	//O(L²)
 			//there are no solutions
 		}
 	} else {
-		#ifdef DEBUG
-//		ExportConfig(puzzle, stdout);
-		#endif
-		
 		int i, j;
 		for (j = 0; j < puzzle->length[ROW]; j++) {	//O(Lr*Lc) = O(L²)
 			for (i = 0; i < puzzle->length[COL]; i++) {	//O(Lc)
@@ -113,7 +109,7 @@ void getDimension(Puzzle* puzzle, FILE* fp, int coord) {	//O(1)
 
 
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-  * readBlockLengthsRow: O(L²)	Macro function to fetch a puzzle's (row|column)'s block lengths.		*
+  * readBlockLengths: O(L²)		Macro function to fetch a puzzle's (row|column)'s block lengths.		*
   *																										*
   * @param Puzzle* :			puzzle we're loading													*
   * @param FILE* : 				input stream															*
@@ -180,7 +176,7 @@ void readBlockLenghts(Puzzle* puzzle, FILE* fp, int coord) {	//O(L²)
 				errorout(ERROR_BADFORMAT, "Found a negative number.");
 			}
 
-			if ((puzzle->line[COL][i].cells = (Cell**) malloc(puzzle->length[COL]*sizeof(Cell*))) == NULL)	errorout(ERROR_MEM,"Could not create rows[i].cells.");
+			if ((puzzle->line[COL][i].cells = (Cell**) malloc(puzzle->length[ROW]*sizeof(Cell*))) == NULL)	errorout(ERROR_MEM,"Could not create rows[i].cells.");
 			for (j = 0; j < puzzle->length[ROW]; j++) {	//O(Lr)
 				puzzle->line[COL][i].cells[j] = puzzle->line[ROW][j].cells[i];
 			}
