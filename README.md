@@ -68,10 +68,8 @@ Might use a single stack for rows and columns in the future, as described at the
 Will use a different structure if it turns out that there's something much more efficient than stacks for a majority of puzzles. (doubtful)  
 
 ###todo:
-####Priorities
-Test with valgrind just in case	.  
-Finish line solving algorithm.  
-####Secondary
-Add missing functions to headers.  
+Organise code.  
+Optimize algorithm.  
 Make sure all memory allocs will errorout if return pointer is null, and other similar things.  
 Change ExportSolution to export solutions into (a) text file(s) rather than print to console.  
+Test more.  
