@@ -21,7 +21,7 @@
   * * * * * * * * * * * * * * * * * * * * * */
 
 /*
-	TODO:ExamineBlocks is incorrectly representing some block combinations (there's unknowns in the middle)
+	TODO: make lines track their unsolvedCells, and change conditionalpush to not push fully solved lines
 */
 
 
@@ -293,11 +293,12 @@ void ExamineBlocks(Line* line, int n, int length, int start, Stack* cellstack, i
 	
 	if (n < line->blockNum - 1) {	//not all blocks are in a position yet, go deeper
 		/* test every possible position of the remaining blocks */
+		int j;
 		int min = line->block[n+1].min;
 		int max = line->block[n+1].max;
 		int size = line->block[n+1].length;
-		for (i = min; i <= max - size + 1; i++) {	//test filling blocksize cells after i = min for every possible block start
-			ExamineBlocks(line, n + 1, length, i, cellstack, i + size - 1);
+		for (j = min; j <= max - size + 1; j++) {	//test filling blocksize cells after i = min for every possible block start
+			ExamineBlocks(line, n + 1, length, j, cellstack, i  - 1);
 		}
 	} else {	//all blocks are in a position, time to test them
 		MergeBlockPositions(line, length, MODE_TEST);
