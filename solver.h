@@ -23,7 +23,6 @@ Por exemplo, se descobrirmos que toda a última linha é composta por #'s, entao
 #define ROW 0	//for array indexing
 #define COL 1
 #define AXES 2
-#define CELL 2
 
 typedef struct _cell {
 	char state;		//STATE_FULL, STATE_BLNK, STATE_UNKN

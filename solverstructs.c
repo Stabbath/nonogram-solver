@@ -5,5 +5,9 @@ char GetState(Cell* cell) {
 }
 
 void SetState(Cell* cell, char state) {
-	cell->state = state;
+	cell->state = state;	
 }
+/*
+void ResetState(Cell* cell) {
+	cell->state = STATE_UNKN;
+}*/

@@ -99,10 +99,6 @@ void FreeStacks(Stack** stack) {
 	ClearStack(stack[COL]);
 	free(stack[ROW]);
 	free(stack[COL]);
-	if (stack[CELL] != NULL) {
-		ClearStack(stack[CELL]);
-		free(stack[CELL]);
-	}
 	free(stack);
 }
 
@@ -122,7 +118,6 @@ Stack** InitStacks(Puzzle* puzzle) {	//O(2L)	= O(L)
 	for (i = 0; i < puzzle->length[ROW]; i++)	Push(stack[ROW], (void*) &puzzle->line[ROW][i]);	//O(Lr)
 	stack[COL] = CreateStack();
 	for (i = 0; i < puzzle->length[COL]; i++)	Push(stack[COL], (void*) &puzzle->line[COL][i]);	//O(Lc)
-	stack[CELL] = NULL;	
 
 	return stack;
 }
