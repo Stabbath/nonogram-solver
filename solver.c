@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "stacks.h"
+#include "queues.h"
 #include "solver.h"
 #include "solverstructs.c"
 
@@ -321,9 +322,9 @@ void ExamineBlocks(Line* line, int n, int length, int start, Stack* cellstack, i
   * @param int :			ROW|COL - coordinate of this line											*
   *	@return int :			number of solved cells, or -1 if an impossibility was discovered.			*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-int solveline(Puzzle* puzzle, Stack** stack, Stack* cellstack, int x) {
+int solveline(Puzzle* puzzle, Queue** q, Stack* cellstack, int x) {
 	Line* line = Pop(stack[x]);
-	if (line->unsolvedCells == 0) return 0;		//don't test solved lines
+//	if (line->unsolvedCells == 0) return 0;		//don't test solved lines
 	
 	int length = puzzle->length[!x];
 	int solvedCells = 0;
@@ -338,8 +339,14 @@ int solveline(Puzzle* puzzle, Stack** stack, Stack* cellstack, int x) {
 		free(st);
 	}
 	
-	
 	Line* solution = MergeBlockPositions(NULL, length, MODE_GET);
+	for (i = 0; i < length; i++) {
+		debp("%c", solution->cells[i]->state);
+	}
+	debp("\n");
+	debp("\n");
+	debp("\n");
+
 	if (solution == NULL) return IMPOSSIBLE;	//NULL means we didn't succeed at all in the previous loop
 	for (i = 0; i < length; i++) {
 		if (line->cells[i]->state != solution->cells[i]->state) {
@@ -348,8 +355,8 @@ int solveline(Puzzle* puzzle, Stack** stack, Stack* cellstack, int x) {
 				line->cells[i]->row->unsolvedCells--;
 				line->cells[i]->col->unsolvedCells--;
 				solvedCells++;
-				Push(cellstack, line->cells[i]);
-				ConditionalPush(stack[!x], &puzzle->line[!x][i]);
+				Push(cellstack,line->cells[i]);
+				ConditionalPush(stack[!x],&puzzle->line[!x][i]);
 			} else {
 				MergeBlockPositions(NULL, length, MODE_RESET);
 				return IMPOSSIBLE;	//can this even get this far without detection? better safe than sorry though!
@@ -382,77 +389,50 @@ int solveline(Puzzle* puzzle, Stack** stack, Stack* cellstack, int x) {
   *							after pushing the row and column that the selected cell belongs to onto the	*
   *							solver stack. Does this until all solutions have been found.				*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-void solve(Puzzle* puzzle, Stack** stack, Stack* cellstack, int unsolvedCellCount) {
-	while (!(IsStackEmpty(stack[ROW]) && IsStackEmpty(stack[COL]))) {
+void solve(Puzzle* puzzle, Queue** q, Stack* cellstack, int unsolvedCellCount) {
+	while (!(IsStackEmpty(stack[ROW]) && IsStackEmpty(stack[COL])) && unsolvedCellCount > 0) {
 		if (!IsStackEmpty(stack[ROW])) {
-			if ((unsolvedCellCount -= solveline(puzzle, stack, cellstack, ROW)) <= 0) break;
+			unsolvedCellCount -= solveline(puzzle, stack, cellstack, ROW);
 		}
 		if (!IsStackEmpty(stack[COL])) {
-			if ((unsolvedCellCount -= solveline(puzzle, stack, cellstack, COL)) <= 0) break;
+			unsolvedCellCount -= solveline(puzzle, stack, cellstack, COL);
 		}
 	}
 	
-	debp("unsolved: %d\n", unsolvedCellCount);
+	debp("%d unsolved\n", unsolvedCellCount);
+	ExportSolution(puzzle, stdout);
 
-//	ExportSolution(puzzle, stdout);
+	char lol;
+	scanf("%c", &lol);
 
-//	static int blergh = 0;
-//	if (++blergh == 2) exit(0);
 
-/*	int i, j;
-	for (i = 0; i < puzzle->length[ROW]; i++) {
-		debp("row %d: %d\n",i,puzzle->line[ROW][i].unsolvedCells);
-	}
-	for (j = 0; j < puzzle->length[COL]; j++) {
-		debp("col %d: %d\n",j,puzzle->line[COL][j].unsolvedCells);
-	}
-	debp("total unsolved cells: %d\n", unsolvedCellCount);
-*/
-debp("here\n");
-	
 	if (unsolvedCellCount > 0) {
 		Stack* nextcellstack = CreateStack();
 		
 		int row, col;
-		int skip = 0;
-		int buf = 0;
 		Cell* pick = PickCell(puzzle, &row, &col);	//O(L²) TODO but might be improved
 		Cell* cell;
 		
-		ExportSolution(puzzle, stdout);
-		
-		debp("hm\n");
-		debp("%d row %d col\n", row, col);
 		puzzle->line[ROW][row].unsolvedCells--;
 		puzzle->line[COL][col].unsolvedCells--;
-		
-		debp("wut\n");
-		
+
 		pick->state = STATE_FULL;
 		debp("solving for full\n");
 		//need to test row and column first
-		//to make sure it's not an invalid cell placement
+		//to make sure it's not an invalid cell
 		//and need to track this cell in the unsolvedcells bit
+		//OH SHIT! unsolvedCells aren't reverted after each post-guess solve attempt!
 		Push(stack[ROW], (void*) &puzzle->line[ROW][row]);
-		buf = solveline(puzzle, stack, nextcellstack, ROW);
+//		solveline(puzzle, stack, ROW);
 		Push(stack[COL], (void*) &puzzle->line[COL][col]);
-		buf += solveline(puzzle, stack, nextcellstack, COL);
-		if (buf < 0) skip = 1;
-		
-		if (!skip) {
-			Push(stack[COL], (void*) &puzzle->line[COL][col]);
-			solve(puzzle, stack, nextcellstack, unsolvedCellCount - 1 - buf);
-		}
-		skip = 0;
-		
-		
+//		solveline(puzzle, stack, COL);
+		solve(puzzle, stack, nextcellstack, unsolvedCellCount - 1);
 		while (!IsStackEmpty(nextcellstack)) {
 			cell = (Cell*) Pop(nextcellstack);
 			cell->state = STATE_UNKN;
 			cell->row->unsolvedCells++;
 			cell->col->unsolvedCells++;
 		}
-
 		
 		pick->state = STATE_BLNK;
 		debp("solving for blnk\n");
@@ -460,44 +440,29 @@ debp("here\n");
 		//to make sure it's not an invalid cell placement
 		//and need to track this cell in the unsolvedcells bit
 		//OH SHIT! unsolvedCells aren't reverted after each post-guess solve attempt!
+//		unsolvedCellCount -= solveline(puzzle, stack, nextcellstack, ROW);
 		Push(stack[ROW], (void*) &puzzle->line[ROW][row]);
-		buf = solveline(puzzle, stack, nextcellstack, ROW);
 		Push(stack[COL], (void*) &puzzle->line[COL][col]);
-		buf += solveline(puzzle, stack, nextcellstack, COL);
-		if (buf < 0) skip = 1;
-
-		if (!skip) {
-			Push(stack[ROW], (void*) &puzzle->line[ROW][row]);
-			Push(stack[COL], (void*) &puzzle->line[COL][col]);
-			solve(puzzle, stack, nextcellstack, unsolvedCellCount - 1 - buf);
+		solve(puzzle, stack, nextcellstack, unsolvedCellCount - 1);
+		while (!IsStackEmpty(nextcellstack)) {
+			cell = (Cell*) Pop(nextcellstack);
+			cell->state = STATE_UNKN;
+			cell->row->unsolvedCells++;
+			cell->col->unsolvedCells++;
 		}
 		
 		pick->state = STATE_UNKN;
-		puzzle->line[ROW][row].unsolvedCells++;
-		puzzle->line[COL][col].unsolvedCells++;
-
-		ClearStack(nextcellstack);
-		free(nextcellstack);
 	} else
 	if (unsolvedCellCount == 0) {
 		ClearStack(stack[ROW]);	//just in case
 		ClearStack(stack[COL]);	//
-		
-/*		int i, j;
-		for (i = 0; i < puzzle->length[ROW]; i++) {
-			debp("row %d: %d\n",i,puzzle->line[ROW][i].unsolvedCells);
-		}
-		for (j = 0; j < puzzle->length[COL]; j++) {
-			debp("col %d: %d\n",j,puzzle->line[COL][j].unsolvedCells);
-		}*/
-		
+
 		ExportSolution(puzzle, stdout);
 	} else {
 		//invalid solution, get out
 	}
-
-debp("not here\n");
-
+	
+	return;
 }
 
 
@@ -563,8 +528,6 @@ int stackline(Line* line, int length) {
 		for (i = 0; i < length; i++) {	//O(L)
 			if (cells[i]->state == STATE_UNKN) {
 				cells[i]->state = STATE_BLNK;
-				cells[i]->row->unsolvedCells--;
-				cells[i]->col->unsolvedCells--;
 				ret++;
 			} else 
 			if (cells[i]->state == STATE_FULL) {
@@ -582,8 +545,6 @@ int stackline(Line* line, int length) {
 			for (j = 0; j < line->block[i].length; j++, l++) {	//O(B)
 				if (cells[l]->state == STATE_UNKN) {
 					cells[l]->state = STATE_FULL;
-					cells[l]->row->unsolvedCells--;
-					cells[l]->col->unsolvedCells--;
 					ret++;
 				} else
 				if (cells[l]->state == STATE_BLNK) {
@@ -594,8 +555,6 @@ int stackline(Line* line, int length) {
 			if (l < length) {
 				if (cells[l]->state == STATE_UNKN) {
 					cells[l]->state = STATE_BLNK;
-					cells[l]->row->unsolvedCells--;
-					cells[l]->col->unsolvedCells--;
 					ret++;
 				} else
 				if (cells[l]->state == STATE_FULL) {	//next cell must be blnk
@@ -626,8 +585,6 @@ int stackline(Line* line, int length) {
 					} else
 					if (cells[i]->state == STATE_UNKN) {
 						cells[i]->state = STATE_FULL;
-						cells[i]->row->unsolvedCells--;
-						cells[i]->col->unsolvedCells--;
 						ret++;
 					}
 				}
@@ -661,11 +618,13 @@ int stackline(Line* line, int length) {
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 int presolve(Puzzle* puzzle) {	//O(L*N²)
 	int unsolvedCellCount = puzzle->length[ROW] * puzzle->length[COL];
-	int i, x;
+	int i, x, buf;
 	for (x = ROW; x < AXES; x++) {	//O((Lr+Lc)*N²) = O(2*L*N²) = O(L*N²)
 		for (i = 0; i < puzzle->length[x]; i++) {	//O(Lr|Lc * N²) = O(L*N²)
 			if (unsolvedCellCount > 0) {
-				unsolvedCellCount -= stackline(&puzzle->line[x][i], puzzle->length[!x]);;
+				buf = stackline(&puzzle->line[x][i], puzzle->length[!x]);
+				unsolvedCellCount -= buf;
+				puzzle->line[x][i].unsolvedCells -= buf;
 			} else {
 				return unsolvedCellCount;
 			}
@@ -697,9 +656,9 @@ int main(int num, char** args) {
 	
 	int unsolvedCellCount = presolve(puzzle);
 	if (unsolvedCellCount > 0) {	//O(L*N²)
-		Stack** stack = InitStacks(puzzle);	//O(L)
-		solve(puzzle, stack, NULL, unsolvedCellCount);		//O(TODO)
-		FreeStacks(stack);	//O(1)
+		Queue** q = InitStacks(puzzle);	//O(L)
+		solve(puzzle, q, NULL, unsolvedCellCount);		//O(TODO)
+		FreeQueues(q);	//O(1)
 	} else
 	if (unsolvedCellCount == 0) {
 		ExportSolution(puzzle, stdout);
