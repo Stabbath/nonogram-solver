@@ -383,6 +383,17 @@ int solveline(Puzzle* puzzle, Stack** stack, int x) {
   *							solver stack. Does this until all solutions have been found.				*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
+	while (!(IsStackEmpty(stack[ROW]) && IsStackEmpty(stack[COL])) && unsolvedCellCount > 0) {
+		if (!IsStackEmpty(stack[ROW])) {
+			unsolvedCellCount -= solveline(puzzle, stack, ROW);
+		}
+		if (!IsStackEmpty(stack[COL])) {
+			unsolvedCellCount -= solveline(puzzle, stack, COL);
+		}
+	}
+
+
+
 	ExportSolution(puzzle, stdout);
 
 
@@ -392,19 +403,6 @@ void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
 	}
 	for (j = 0; j < puzzle->length[COL]; j++) {
 		debp("col %d: %d\n",j,puzzle->line[COL][j].unsolvedCells);
-	}
-
-
-	exit(0);
-
-
-	while (!(IsStackEmpty(stack[ROW]) && IsStackEmpty(stack[COL])) && unsolvedCellCount > 0) {
-		if (!IsStackEmpty(stack[ROW])) {
-			unsolvedCellCount -= solveline(puzzle, stack, ROW);
-		}
-		if (!IsStackEmpty(stack[COL])) {
-			unsolvedCellCount -= solveline(puzzle, stack, COL);
-		}
 	}
 
 
