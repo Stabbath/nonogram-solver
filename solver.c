@@ -419,6 +419,8 @@ debp("here\n");
 		Cell* pick = PickCell(puzzle, &row, &col);	//O(L²) TODO but might be improved
 		Cell* cell;
 		
+		ExportSolution(puzzle, stdout);
+		
 		debp("hm\n");
 		debp("%d row %d col\n", row, col);
 		puzzle->line[ROW][row].unsolvedCells--;
