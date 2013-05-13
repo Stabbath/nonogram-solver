@@ -383,6 +383,21 @@ int solveline(Puzzle* puzzle, Stack** stack, int x) {
   *							solver stack. Does this until all solutions have been found.				*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
+	ExportSolution(puzzle, stdout);
+
+
+	int i, j;
+	for (i = 0; i < puzzle->length[ROW]; i++) {
+		debp("row %d: %d\n",i,puzzle->line[ROW][i].unsolvedCells);
+	}
+	for (j = 0; j < puzzle->length[COL]; j++) {
+		debp("col %d: %d\n",j,puzzle->line[COL][j].unsolvedCells);
+	}
+
+
+	exit(0);
+
+
 	while (!(IsStackEmpty(stack[ROW]) && IsStackEmpty(stack[COL])) && unsolvedCellCount > 0) {
 		if (!IsStackEmpty(stack[ROW])) {
 			unsolvedCellCount -= solveline(puzzle, stack, ROW);
@@ -392,13 +407,13 @@ void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
 		}
 	}
 
-//	ExportSolution(puzzle, stdout);
 
+	
 	if (unsolvedCellCount > 0) {
 		if (stack[CELL] == NULL) stack[CELL] = CreateStack();
 		
 		int row, col;
-		int buf;
+		int buf = 0;
 		Cell* pick = PickCell(puzzle, &row, &col);	//O(L²) TODO but might be improved
 		Cell* cell;
 		
@@ -449,11 +464,21 @@ void solve(Puzzle* puzzle, Stack** stack, int unsolvedCellCount) {
 		}
 		
 		pick->state = STATE_UNKN;
+		puzzle->line[ROW][row].unsolvedCells++;
+		puzzle->line[COL][col].unsolvedCells++;
 	} else
 	if (unsolvedCellCount == 0) {
 		ClearStack(stack[ROW]);	//just in case
 		ClearStack(stack[COL]);	//
-
+		
+/*		int i, j;
+		for (i = 0; i < puzzle->length[ROW]; i++) {
+			debp("row %d: %d\n",i,puzzle->line[ROW][i].unsolvedCells);
+		}
+		for (j = 0; j < puzzle->length[COL]; j++) {
+			debp("col %d: %d\n",j,puzzle->line[COL][j].unsolvedCells);
+		}*/
+		
 		ExportSolution(puzzle, stdout);
 	} else {
 		//invalid solution, get out
@@ -525,6 +550,8 @@ int stackline(Line* line, int length) {
 		for (i = 0; i < length; i++) {	//O(L)
 			if (cells[i]->state == STATE_UNKN) {
 				cells[i]->state = STATE_BLNK;
+				cells[i]->row->unsolvedCells--;
+				cells[i]->col->unsolvedCells--;
 				ret++;
 			} else 
 			if (cells[i]->state == STATE_FULL) {
@@ -542,6 +569,8 @@ int stackline(Line* line, int length) {
 			for (j = 0; j < line->block[i].length; j++, l++) {	//O(B)
 				if (cells[l]->state == STATE_UNKN) {
 					cells[l]->state = STATE_FULL;
+					cells[l]->row->unsolvedCells--;
+					cells[l]->col->unsolvedCells--;
 					ret++;
 				} else
 				if (cells[l]->state == STATE_BLNK) {
@@ -552,6 +581,8 @@ int stackline(Line* line, int length) {
 			if (l < length) {
 				if (cells[l]->state == STATE_UNKN) {
 					cells[l]->state = STATE_BLNK;
+					cells[l]->row->unsolvedCells--;
+					cells[l]->col->unsolvedCells--;
 					ret++;
 				} else
 				if (cells[l]->state == STATE_FULL) {	//next cell must be blnk
@@ -582,6 +613,8 @@ int stackline(Line* line, int length) {
 					} else
 					if (cells[i]->state == STATE_UNKN) {
 						cells[i]->state = STATE_FULL;
+						cells[i]->row->unsolvedCells--;
+						cells[i]->col->unsolvedCells--;
 						ret++;
 					}
 				}
@@ -615,13 +648,11 @@ int stackline(Line* line, int length) {
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 int presolve(Puzzle* puzzle) {	//O(L*N²)
 	int unsolvedCellCount = puzzle->length[ROW] * puzzle->length[COL];
-	int i, x, buf;
+	int i, x;
 	for (x = ROW; x < AXES; x++) {	//O((Lr+Lc)*N²) = O(2*L*N²) = O(L*N²)
 		for (i = 0; i < puzzle->length[x]; i++) {	//O(Lr|Lc * N²) = O(L*N²)
 			if (unsolvedCellCount > 0) {
-				buf = stackline(&puzzle->line[x][i], puzzle->length[!x]);
-				unsolvedCellCount -= buf;
-				puzzle->line[x][i].unsolvedCells -= buf;
+				unsolvedCellCount -= stackline(&puzzle->line[x][i], puzzle->length[!x]);;
 			} else {
 				return unsolvedCellCount;
 			}
