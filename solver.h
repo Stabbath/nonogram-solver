@@ -27,6 +27,8 @@ Por exemplo, se descobrirmos que toda a última linha é composta por #'s, entao
 
 typedef struct _cell {
 	char state;		//STATE_FULL, STATE_BLNK, STATE_UNKN
+	struct _line* row;
+	struct _line* col;
 } Cell;
 
 typedef struct _block {

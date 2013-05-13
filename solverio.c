@@ -74,7 +74,7 @@ void ExportSolution(Puzzle* puzzle, FILE* stream) {	//O(L²)
 	
 	if (puzzle == NULL) {
 		if (solutions == 0) {
-			//there are no solutions
+			printf("impossible\n");
 		}
 	} else {
 		int i, j;
@@ -136,6 +136,8 @@ void readBlockLenghts(Puzzle* puzzle, FILE* fp, int coord) {	//O(L²)
 				errorout(ERROR_BADFORMAT, "Found a negative number.");
 			}
 		
+			puzzle->line[ROW][i].unsolvedCells = puzzle->length[COL];
+
 			if ((puzzle->line[ROW][i].cells = (Cell**) malloc(puzzle->length[COL]*sizeof(Cell*))) == NULL)	errorout(ERROR_MEM,"Could not create rows[i].cells.");
 			for (j = 0; j < puzzle->length[COL]; j++) {		//O(Lc)
 				puzzle->line[ROW][i].cells[j] = (Cell*) malloc(sizeof(Cell));
@@ -175,6 +177,8 @@ void readBlockLenghts(Puzzle* puzzle, FILE* fp, int coord) {	//O(L²)
 			} else {
 				errorout(ERROR_BADFORMAT, "Found a negative number.");
 			}
+
+			puzzle->line[COL][i].unsolvedCells = puzzle->length[ROW];
 
 			if ((puzzle->line[COL][i].cells = (Cell**) malloc(puzzle->length[ROW]*sizeof(Cell*))) == NULL)	errorout(ERROR_MEM,"Could not create rows[i].cells.");
 			for (j = 0; j < puzzle->length[ROW]; j++) {	//O(Lr)

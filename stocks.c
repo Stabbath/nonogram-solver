@@ -159,10 +159,8 @@ Cell* PickCell(Puzzle* puzzle, int *row, int *col) {	//worst case: O(Lr*Lc) = O(
   *	@noreturn																							*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 void ConditionalPush(Stack* stack, Line* line) {
-//	if (line->unsolvedCells > 0) {
+	if (line->unsolvedCells > 0) {
 		Push(stack, (void*) line);
-/*	} else {
-		return;
-	}*/
+	}
 }
 
