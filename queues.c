@@ -1,11 +1,11 @@
 #include <stdlib.h>
 #include "queues.h"
 
-struct _element {
+typedef struct _element {
 	Item* item;
 	struct _element* next;
 	struct _element* prev;
-};
+} Element;
 
 struct _queue {
 	Element* front;
@@ -22,10 +22,15 @@ Queue* CreateQueue() {
 void PushQ(Queue* queue, Item* item) {
 	if (queue == NULL) return;
 	Element* element = (Element*) malloc(sizeof(Element));
-	Element* buffer = queue->back;
+	Element* last = queue->back;
+	element->next = last;
+	element->prev = NULL;
 	queue->back = element;
-	queue->back->next = buffer;
-	buffer->prev = element;
+	if (last != NULL) {
+		last->prev = element;
+	} else {	//means front is also null
+		queue->front = element;
+	}
 	element->item = item;
 }
 
@@ -34,7 +39,7 @@ Item* PopQ(Queue* queue) {
 	Element* front = queue->front;
 	Item* item = front->item;
 	queue->front = queue->front->prev;
-	queue->front->next = NULL;
+	if (queue->front != NULL) queue->front->next = NULL;
 	free(front);
 	return item;
 }
@@ -51,77 +56,7 @@ int IsInQueue(Queue* queue, Item* item) {
 	Element* e = queue->front;
 	while (e != NULL) {
 		if (item == e->item) return 1;
-		e = e->next;
+		e = e->prev;
 	}
 	return 0;
 }
-
-
-
-
-
-
-
-
-/*
-//after presolve + first solve: 16 unsolved
--????-
-??????
-#----#
-######
-#----#
-??????
-	//after guessing full: 8 unsolved
-	-##---
-	?--???
-	#----#
-	######
-	#----#
-	?--???
-		//after guessing full: 3 unsolved
-		-##---
-		#---??
-		#----#
-		######
-		#----#
-		---#-?
-			//after guessing full: 0 unsolved FINISHED
-			-##---
-			#---#-
-			#----#
-			######
-			#----#
-			---#-#
-			//now tries guessing blank: 1 unsolved FUCKED UP
-			-#???-
-			#-??-?
-			#----#
-			######
-			#----#
-			?-????
-
-
-*/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

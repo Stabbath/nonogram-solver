@@ -2,7 +2,6 @@
 #define _INCLUDE_QUEUES
 
 typedef void Item;
-typedef struct _element Element;
 typedef struct _queue Queue;
 
 Queue*	CreateQueue();
