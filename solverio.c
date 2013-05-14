@@ -65,22 +65,20 @@ void ExportConfig(Puzzle* puzzle, FILE* stream) {
   *	NOTE: only O(1) if puzzle is NULL																	*
   *																										*
   * @param Puzzle* :		puzzle to get config from													*
+  * @param char* :			name string for when puzzle == NULL							*
   * @param FILE* : 			output stream																*
   *	@noreturn																							*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-void ExportSolution(Puzzle* puzzle) {	//O(L²)
+void ExportSolution(Puzzle* puzzle, char* name) {	//O(L²)
 	static int solutions = 0;
 
-	debp("here\n");
-	
 	if (puzzle == NULL) {
 		if (solutions == 0) {	//means we reached the end without finding any solutions
 			char filename[BUFFERSIZE];
-			strcpy(filename, puzzle->name);
+			strcpy(filename, name);
 			strcat(filename, ".sol");
-
 			FILE* stream = fopen(filename, "w");
-			fprintf(stream, "No solution to this puzzle.\n");
+			fprintf(stream, "\n");
 			fclose(stream);
 		}
 	} else {
@@ -109,8 +107,6 @@ void ExportSolution(Puzzle* puzzle) {	//O(L²)
 		solutions++;
 		fclose(stream);
 	}
-
-	debp("not here\n");
 }
 
 

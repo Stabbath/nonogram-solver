@@ -52,7 +52,7 @@ typedef struct _puzzle {
 //solverio.c
 void 	debp				(const char*, 	...);
 void 	ExportConfig		(Puzzle*, 	FILE*);
-void 	ExportSolution		(Puzzle*);
+void 	ExportSolution		(Puzzle*,	char*);
 void 	getDimension		(Puzzle*, 	FILE*,	int);
 void 	readBlockLenghts	(Puzzle*, 	FILE*,	int);
 void 	errorout			(char*	, 	char*);

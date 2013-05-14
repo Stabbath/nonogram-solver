@@ -83,7 +83,6 @@ void FreePuzzle(Puzzle* puzzle) {	//O(Lr*Lc) + O(Lc) = O((Lr+1)*Lc) = O(Lr*Lc) =
 	free(puzzle->line[COL]);
 	free(puzzle->line);
 	free(puzzle->length);
-//	free(puzzle->name);
 	free(puzzle);
 }
 

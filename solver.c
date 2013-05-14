@@ -396,8 +396,6 @@ void solve(Puzzle* puzzle, Stack** stack, Stack* cellstack, int unsolvedCellCoun
 		}
 	}
 
-//	ExportSolution(puzzle, stdout);
-
 	if (unsolvedCellCount > 0) {
 		Stack* nextcellstack = CreateStack();
 		
@@ -431,9 +429,12 @@ void solve(Puzzle* puzzle, Stack** stack, Stack* cellstack, int unsolvedCellCoun
 		}
 		
 		pick->state = STATE_UNKN;
+		
+		ClearStack(nextcellstack);
+		free(nextcellstack);
 	} else
 	if (unsolvedCellCount == 0) {
-		if (checkpuzzle(puzzle)) ExportSolution(puzzle);
+		if (checkpuzzle(puzzle)) ExportSolution(puzzle, NULL);
 	} else {
 		//invalid solution, get out
 	}
@@ -615,41 +616,6 @@ int presolve(Puzzle* puzzle) {	//O(L*N²)
 }
 
 
-/*int checkline(Line* line, int length) {
-	int i;
-	int count;
-	Stack* stack = CreateStack();
-	Cell** cells = line->cells;
-	for (i = 0; i < length; i++) {
-		if (cells[i]->state == STATE_FULL) {
-			++count;
-		} else
-		if (cells[i]->state == STATE_BLNK) {
-			if (count == 0) continue;
-			else {
-				int* tmp = (int*) malloc(sizeof(int));
-				*tmp = count;
-				Push(stack, tmp);
-				count = 0;
-			}
-		} else {
-			printf("found unknowns\n");
-			fflush(stdout);
-			return 0;	//won't have any unknowns here, but still good to take it into account
-		}
-	}
-	
-	int* buf;
-	for (i = line->blockNum - 1; i >= 0; i--) {
-		if (IsStackEmpty(stack)) return 0;	//means we didnt detect as many blocks as necessary
-		buf = Pop(stack);
-		if (*buf != line->block[i].length) return 0;
-	}
-	
-	return (IsStackEmpty(stack));	//if it's not empty, there were more blocks than supposed
-	return 1;
-}
-*/
 
 
 int getSumOfBlocks(Line* line) {
@@ -663,18 +629,54 @@ int getSumOfBlocks(Line* line) {
 }
 
 int checkline(Line* line, int length) {
-	int count = getSumOfBlocks(line);
-	int valid = 0;
+	if (line->block[0].length == 0) return 1;	//blank lines are correctly always filled
+
+	int sum = getSumOfBlocks(line);
+	int count = 0;
+	int streak = 0;
 	int j;
+	Stack* streakStack = CreateStack();
 	for (j = 0; j < length; j++) {
 		if (line->cells[j]->state == STATE_FULL) {
-			valid++;
+			count++;
+			streak++;
 		}
-		if (line->cells[j]->state == STATE_BLNK) {
-			
+		if (line->cells[j]->state == STATE_BLNK || j == length - 1) {
+			if (streak != 0) {
+				int* tmp = malloc(sizeof(tmp));
+				*tmp = streak;
+				Push(streakStack, (void*) tmp);
+			}
+			streak = 0;
 		}
 	}
-	return (valid == count);
+	if (sum != count) return 0;	//number of # is different from what was expected
+	
+	int n;
+	int success = 1;
+	int* tmp;
+	for (n = line->blockNum - 1; n >= 0; n--) {
+		if (IsStackEmpty(streakStack)) {	//means there were less blocks than there were supposed to be
+			success = 0;
+			break;
+		}
+		
+		tmp = (int*) Pop(streakStack);
+		if (line->block[n].length != *tmp) {	//means this block had the wrong length
+			success = 0;
+		}
+		
+		free(tmp);
+	}
+	if (!IsStackEmpty(streakStack)) {
+		success = 0;	//means there were more blocks than there were supposed to be
+		while (!IsStackEmpty(streakStack)) {
+			free(Pop(streakStack));
+		}
+	}
+	free(streakStack);
+	
+	return success;
 }
 
 int checkpuzzle(Puzzle* puzzle) {
@@ -717,12 +719,12 @@ int main(int num, char** args) {
 		FreeStacks(stack);	//O(1)
 	} else
 	if (unsolvedCellCount == 0) {
-		ExportSolution(puzzle);
+		ExportSolution(puzzle, NULL);
 	}
 	
-	FreePuzzle(puzzle);	//O(L²)
+	ExportSolution(NULL, puzzle->name);	//O(1)
 	
-	ExportSolution(NULL);	//O(1)
+	FreePuzzle(puzzle);	//O(L²)
 	
 	return 0;
 }
