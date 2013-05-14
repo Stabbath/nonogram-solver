@@ -433,7 +433,7 @@ void solve(Puzzle* puzzle, Stack** stack, Stack* cellstack, int unsolvedCellCoun
 		pick->state = STATE_UNKN;
 	} else
 	if (unsolvedCellCount == 0) {
-		if (checkpuzzle(puzzle)) ExportSolution(puzzle, stdout);
+		if (checkpuzzle(puzzle)) ExportSolution(puzzle);
 	} else {
 		//invalid solution, get out
 	}
@@ -615,45 +615,6 @@ int presolve(Puzzle* puzzle) {	//O(L*N²)
 }
 
 
-/*int checkpuzzle(Puzzle* puzzle) {
-	int i;
-	for (i = 0; i < puzzle->length[ROW]; i++) {
-		debp("%d row\n",i);
-		if (!checkline(&puzzle->line[ROW][i], puzzle->length[COL])) return 0;
-	}
-	for (i = 0; i < puzzle->length[COL]; i++) {
-		debp("%d col\n",i);
-		if (!checkline(&puzzle->line[COL][i], puzzle->length[ROW])) return 0;
-	}
-	debp("puzzle ok\n");	
-
-	return 1;
-}
-
-int checkline(Line* line, int length) {
-	if (line->block[0].length == 0) return 1;
-
-	int i, n = 0, found = 0;
-	Cell** cells = line->cells;
-	
-	for (i = 0; i < length; i++) {
-		if (cells[i]->state == STATE_UNKN) return 0;
-		if (cells[i]->state == STATE_FULL) found++;
-		else {
-			if (found == 0) continue;
-			if (found == line->block[n].length) {
-				found = 0;
-				n++;
-				if (n == line->blockNum) return 0;
-			} else return 0;
-		}
-	}
-	if (n < line->blockNum) return 0;
-	
-	return 1;
-}*/
-
-
 /*int checkline(Line* line, int length) {
 	int i;
 	int count;
@@ -688,16 +649,7 @@ int checkline(Line* line, int length) {
 	return (IsStackEmpty(stack));	//if it's not empty, there were more blocks than supposed
 	return 1;
 }
-
-int checkpuzzle(Puzzle* puzzle) {
-	int i, x;
-	for (x = ROW; x < AXES; x++) {
-		for (i = 0; i < puzzle->length[x]; i++) {
-			if (!checkline(&puzzle->line[x][i], puzzle->length[!x])) return 0;
-		}
-	}
-	return 1;
-}*/
+*/
 
 
 int getSumOfBlocks(Line* line) {
@@ -765,12 +717,12 @@ int main(int num, char** args) {
 		FreeStacks(stack);	//O(1)
 	} else
 	if (unsolvedCellCount == 0) {
-		ExportSolution(puzzle, stdout);
+		ExportSolution(puzzle);
 	}
 	
 	FreePuzzle(puzzle);	//O(L²)
 	
-	ExportSolution(NULL, NULL);	//O(1)
+	ExportSolution(NULL);	//O(1)
 	
 	return 0;
 }

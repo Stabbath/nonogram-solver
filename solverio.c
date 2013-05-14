@@ -68,25 +68,49 @@ void ExportConfig(Puzzle* puzzle, FILE* stream) {
   * @param FILE* : 			output stream																*
   *	@noreturn																							*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-void ExportSolution(Puzzle* puzzle, FILE* stream) {	//O(L²)
+void ExportSolution(Puzzle* puzzle) {	//O(L²)
 	static int solutions = 0;
-	
+
+	debp("here\n");
 	
 	if (puzzle == NULL) {
-		if (solutions == 0) {
-			printf("impossible\n");
+		if (solutions == 0) {	//means we reached the end without finding any solutions
+			char filename[BUFFERSIZE];
+			strcpy(filename, puzzle->name);
+			strcat(filename, ".sol");
+
+			FILE* stream = fopen(filename, "w");
+			fprintf(stream, "No solution to this puzzle.\n");
+			fclose(stream);
 		}
 	} else {
+		char filename[BUFFERSIZE];
+		strcpy(filename, puzzle->name);
+	
+		if (solutions > 0) {	//for multiple solutions
+			strcat(filename, "-");
+
+			char num[BUFFERSIZE];
+			sprintf(num, "%d", solutions);
+			strcat(filename, num);
+		}
+		strcat(filename, ".sol");
+
+
+		FILE* stream = fopen(filename, "w");
 		int i, j;
 		for (j = 0; j < puzzle->length[ROW]; j++) {	//O(Lr*Lc) = O(L²)
 			for (i = 0; i < puzzle->length[COL]; i++) {	//O(Lc)
 				fprintf(stream, "%c", puzzle->line[COL][i].cells[j]->state);
 			}
-			fprintf(stream, "\n");
+			fprintf(stream, "\n");	//line break at end of each row
 		}
-		fprintf(stream, "\n");
+		fprintf(stream, "\n");	//line break at end of puzzle for extra blank line
 		solutions++;
+		fclose(stream);
 	}
+
+	debp("not here\n");
 }
 
 
@@ -241,10 +265,24 @@ void checkblankln(FILE* fp) {	//O(1)
   *	@return Puzzle* :		pointer to puzzle structure with the fetched configuration					*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 Puzzle* getPuzzle(char* name) {	//O(L²)
+	int c = 0;
+	int dot = -1;
+	while (name[c] != '\0') {
+		if (name[c] == '.') {
+			dot = c;
+		}
+		c++;
+	}
+	char ext[BUFFERSIZE];
+	strcpy(ext, &name[dot]);
+	//files named simply '.cfg' will be openable
+	if (dot == -1 || strcmp(ext, ".cfg")) errorout(ERROR_ARGS, "Can only open *.cfg files!");
 	FILE* fp = fopen(name, "r");
 	if (fp == NULL)	errorout(ERROR_404, "Wrong directory or name for puzzle config.");
+	
 	Puzzle* puzzle = (Puzzle*) malloc(sizeof(Puzzle));
 	puzzle->name = name;
+	name[dot] = '\0'; //to cut out the extension
 	
 	if (puzzle == NULL) errorout(ERROR_MEM, "Could not create Puzzle.");
 	
