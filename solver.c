@@ -5,156 +5,6 @@
 #include "solver.h"
 #include "solverstructs.c"
 
- /* * * * * * * * * * * * * * * * * * * * * *
-  * Complexity variables: 					*
-  *	N - number of blocks in line 			*
-  *	L - length of line (r|c => row|column)	*
-  *	B - length of block						*
-  * S - sum of blocks + blanks in line		*
-  * --------------------------------------- *
-  * These usually refer to puzzle-wide avgs.*
-  * * * * * * * * * * * * * * * * * * * * * */
-
- /* * * * * * * * * * * * * * * * * * * * * *
-  * TODO: Fix ExamineBlocks					*
-  *	 && Brute force change tracker/reverter *
-  *	 && solver line/row pushing 			*
-  * * * * * * * * * * * * * * * * * * * * * */
-
-//note: check to make sure that sum of blocks + blanks is <= line length in getPuzzle: if a line is not, just quit since puzzle is impossible
-
-
-
-/*
-n = 1, L = 6
-possibilidades = 6
-n = 2, L = 6
-possibilidades = +4 +3 +2 +1 = 10
-#-#---	
-#--#--
-#---#-
-#----#
-n = 3. L = 6
-possibilidades = 4
-#-#-#-
-#-#--#
-#--#-#
--#-#-#
-
-n = 1, L = 8
-possibilidades = 8
-n = 2, L = 8
-possibilidades = 10
-#-#---
-#--#--
-#---#-
-#----#
--#-#--
--#--#-
--#---#
---#-#-
---#--#
----#-#
-n = 3. L = 8
-possibilidades = 20
-#-#-#---
-#-#--#--
-#-#---#-
-#-#----#
-#--#-#--
-#--#--#-
-#--#---#
-#---#-#-
-#---#--#
-#----#-#
--#-#-#--
-4+3+2+1+3+2+1+2+1
-
-??????????
-#-#-#-----	//6
-#-#--#----
-#-#---#---
-#-#----#--
-#-#-----#-
-#-#------#
-#--#-#----	//5
-#--#--#---
-#--#---#--
-#--#----#-
-#--#-----#
-#---#-#---	//4
-#---#--#--
-#---#---#-
-#---#----#
-#----#-#--	//3
-#----#--#-
-#----#---#
-#-----#-#-	//2
-#-----#--#
-#------#-#	//1
-
--#-#-#----	//+5+4+3+2+1
--#-#--#---
--#-#---#--
--#-#----#-
--#-#-----#
--#--#-#---
--#--#--#--
--#--#---#-
--#--#----#
--#---#-#--
-
---#-#-#---	//+4+3+2+1
----#-#-#--	//+3+2+1
-----#-#-#-	//+2+1
------#-#-#	//+1
-
-
-Pior caso implica obviamente que todos os blocos têm tamanho mínimo = 1.
-Por esta razao, S = N*2 - 1 //N blocos + N espaços - 1 espaço
-Sp = soma dos blocos anteriores
-Sn = soma dos blocos seguintes, incluindo o proprio bloco
-
-
-posições possíveis para o 1º bloco: L-(S-1) = L-(N*2-2) = L - N*2 + 2
-posições possíveis para o 2º bloco: L - Sp - Sn = L - S = L - N*2 - 1
-posicoes possiveis para o 3º bloco: L - S = L - N*2 - 1
-... nº bloco: L - S 
-
-F = (L - N*2 - 1)^N <- need to figure out what the exact expression is
-
-extremos:
-    dF/dL = 0
-
-
-NOTAS:
-
-a secção que mete '-'s entre os maximos e os minimos nao está a funcionar muito bem. 
-Se estiver comentada, há segfault nalgum sitio. 
-Se não estiver comentada, não há segfault mas enche '-'s em sitios em que nao devia.
-
-
-
-
-ideia:
-possivel algoritmo, que talvez seja menos eficiente mas mais facil de implementar:
-testamos todas as possiveis combinaçoes de posicoes para os blocos de uma linha. Vamos escrevendo (ou num clone da linha ou na propria linha mas depois desfazemos as mudanças se houverem problemas) os blocos na linha, e vamos testando os valores que já estavam na linha. Cada vez que chegamos ao fim da linha sem impossibilidades, guardamos a linha numa lista ou numa pilha. Se acontecer que para todas as posições de um bloco há uma certa célula que está sempre cheia, então ela tem de estar cheia.
-
-Podemos guardar os mins e maxs de cada bloco à mesma, sendo que seriam descobertos por este método! E quando voltarmos à linha uma segunda vez, pode-se usar logo esses minimos e maximos como pontos de começo para voltar a encontrar todas as possiveis posições de todos os blocos da linha. Há outras optimizações que dá para inventar, e é mais fácil de implementar do que tudo o que já experimentámos já que não involve o que estavams a fazer, o que é basicamente um estudo matemático das condições das células para qualquer disposição geral da linha.
-
-Como deves ter percebido isto é (n+1)n/2, com n = L - S, para comprimento de linha = L e S = soma de todos os blocos e espaços menos o primeiro bloco. Neste caso S = 2 => (10-2+1)*(10-2)/2 = 9*8/2 = 9*4 = 36
-
-Por isso a complexidade para o pior caso, que é este que acabei de exemplificar só que para qualquer L, é O( (L-S+1)*(L-S)/2  ) = O( (L-1)*(L-2)/2 ) = O( (L²-3L+2)/2 ) = O(L²)
-
-Quadrático em L é melhor até do que o stacklines que era O(L*N²) (mas continuamos a precisar desse para termos uma base decente para o puzzle)
-
-
-Isto também está mais associado ao método que o professor tinha mencionado na aula de dúvidas da semana passada. Ele disse que em vez de olhar para as células como estávamos podiamos também olhar para o problema como sendo uma questão das diferentes combinações de posições dos blocos.
-
-Que achas? Eu acho que é o melhor.
-*/
-
-
 #define MODE_GET 0
 #define MODE_RESET 1
 #define MODE_TEST 2
@@ -471,23 +321,29 @@ int checkline(Line* line, int length) {
 			streak = 0;
 		}
 	}
-	if (sum != count) return 0;	//number of # is different from what was expected
-	
-	int n;
+
 	int success = 1;
-	int* tmp;
-	for (n = line->blockNum - 1; n >= 0; n--) {
-		if (IsStackEmpty(streakStack)) {	//means there were less blocks than there were supposed to be
-			success = 0;
-			break;
-		}
+
+	if (sum != count) {	//number of # is different from what was expected
+		success = 0;
+	}	
+	
+	if (success) {
+		int n;
+		int* tmp;
+		for (n = line->blockNum - 1; n >= 0; n--) {
+			if (IsStackEmpty(streakStack)) {	//means there were less blocks than there were supposed to be
+				success = 0;
+				break;
+			}
 		
-		tmp = (int*) Pop(streakStack);
-		if (line->block[n].length != *tmp) {	//means this block had the wrong length
-			success = 0;
-		}
+			tmp = (int*) Pop(streakStack);
+			if (line->block[n].length != *tmp) {	//means this block had the wrong length
+				success = 0;
+			}
 		
-		free(tmp);
+			free(tmp);
+		}
 	}
 	if (!IsStackEmpty(streakStack)) {
 		success = 0;	//means there were more blocks than there were supposed to be
@@ -513,18 +369,7 @@ int checkpuzzle(Puzzle* puzzle) {
 	return 1;
 }
 
-
-//O(L²) + O(L) + O(L*N²) + O(TODO) + O(L²) + O(1) + O(1) =
-//O(2L² + L + 2 + L*N² + TODO) =
-//O(TODO)
-
-int main(int num, char** args) {
-	if (num < 2) errorout(ERROR_ARGS, "No file name was given.");
-	
-	if (strlen(args[1]) >= MAXPATH) errorout(ERROR_ARGS, "Filename too long.");
-	
-	Puzzle* puzzle = getPuzzle(args[1]);	//O(L²)
-	
+void LinkCellsToLines(Puzzle* puzzle) {
 	int i, j;	//store lines each cell belongs to inside of the cell structs
 	for (i = 0; i < puzzle->length[ROW]; i++) {
 		for (j = 0; j < puzzle->length[COL]; j++) {
@@ -532,9 +377,46 @@ int main(int num, char** args) {
 			puzzle->line[COL][j].cells[i]->col = &puzzle->line[COL][j];
 		}
 	}
+}
+
+
+void SetupMinsAndMaxes(Puzzle* puzzle) {
+	/*get basic mins and maxes for each block*/
+	int i, j, n, min, max, length;
+	Line* line;
+	for (j = ROW; j < AXES; j++) {
+		for (i = 0; i < puzzle->length[j]; i++) {
+			line = &puzzle->line[j][i];
+			length = puzzle->length[!j];
+			min = 0;
+			max = length - 1 - (getMinSumOfBlocksAndBlanks(line, 0) - line->block[0].length);
+			for (n = 0; n < line->blockNum; n++) {
+				line->block[n].min = min;
+				line->block[n].max = max;
+				
+				if (n < line->blockNum - 1) {
+					min += line->block[n].length + 1;
+					max += line->block[n + 1].length + 1;
+				}
+			}
+		}
+	}
+}
+
+
+
+int main(int num, char** args) {
+	if (num < 2) errorout(ERROR_ARGS, "No file name was given.");
 	
+	if (strlen(args[1]) >= MAXPATH) errorout(ERROR_ARGS, "Filename too long.");
+	
+	Puzzle* puzzle = getPuzzle(args[1]);	//O(L²)
+		
 	int unsolvedCellCount = presolve(puzzle);
 	if (unsolvedCellCount > 0) {	//O(L*N²)
+		LinkCellsToLines(puzzle);
+		SetupMinsAndMaxes(puzzle);
+
 		Stack** stack = InitStacks(puzzle);	//O(L)
 		solve(puzzle, stack, NULL, unsolvedCellCount);		//O(TODO)
 		FreeStacks(stack);	//O(1)

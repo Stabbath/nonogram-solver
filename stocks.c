@@ -30,7 +30,7 @@ int getMinSumOfBlocksAndBlanks(Line* line, int n) {
   *																											*
   * @param Line* :							line to get sum of												*
   * @param int :							block index to start on											*
-  *	@return int :							sum; 															*
+  *	@return int :							sum 															*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 int getMinSumOfBlocksAndBlanksPrev(Line* line, int n) {
 	if (n == 0) return 0;
@@ -102,6 +102,7 @@ void FreeStacks(Stack** stack) {
 }
 
 
+
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
   * InitStacks: O(L)		Just a macro function to clean up main. Allocates memory to stacks and 		*
   *							pushes every row and column to its respective stack.						*
@@ -112,7 +113,7 @@ void FreeStacks(Stack** stack) {
 Stack** InitStacks(Puzzle* puzzle) {	//O(2L)	= O(L)
 	int i;
 
-	Stack** stack = (Stack**) malloc((AXES+1)*sizeof(Stack*));
+	Stack** stack = (Stack**) malloc(AXES*sizeof(Stack*));
 	stack[ROW] = CreateStack();
 	for (i = 0; i < puzzle->length[ROW]; i++)	Push(stack[ROW], (void*) &puzzle->line[ROW][i]);	//O(Lr)
 	stack[COL] = CreateStack();
@@ -124,15 +125,17 @@ Stack** InitStacks(Puzzle* puzzle) {	//O(2L)	= O(L)
 
 
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-  * PickCell: O(L²)		Gets the size of the largest block in a line									*
+  * PickCell: O(L²)		Loops through puzzle cells and returns the first unidentified cell				*
   * 																									*
-  * @param Line* :		line to get largest size from													*
-  *	@return int :		length of largest block															*
+  * @param Puzzle* :	puzzle to find cell in															*
+  * @param int* :		int ptr for storing the cell's row's index										*
+  * @param int* :		int ptr for storing the cell's column's index									*
+  *	@return Cell* :		picked cell																		*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 Cell* PickCell(Puzzle* puzzle, int *row, int *col) {	//worst case: O(Lr*Lc) = O(L²)		, average is much much lower though
-	int i, j;						//TODO still, L² is pretty bad.. should think about this
-	for (i = 0; i < puzzle->length[ROW]; i++) {	//O(Lr*Lc)
-		for (j = 0; j < puzzle->length[COL]; j++) {	//O(Lc)
+	int i, j;
+	for (i = 0; i < puzzle->length[ROW]; i++) {
+		for (j = 0; j < puzzle->length[COL]; j++) {
 			if (puzzle->line[ROW][i].cells[j]->state == STATE_UNKN) {
 				*row = i;
 				*col = j;
