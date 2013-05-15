@@ -3,17 +3,27 @@
 #include <string.h>
 #include "stacks.h"
 #include "solver.h"
-#include "solverstructs.c"
 
 #define MODE_GET 0
 #define MODE_RESET 1
 #define MODE_TEST 2
 
+/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+  * MergeBlockPositions: 	Tests a line's different block configurations against each other as they are*
+  *	O(L)					identified by ExamineBlocks. Finds out which cells can be determined with 	*
+  *							certainty.																	*
+  *																										*
+  * @param Line* :			line we're merging with the current solution								*
+  * @param int :			number of cells in this line (as well as in the solution)					*
+  * @param int :			MODE_GET|MODE_RESET|MODE_TEST - operating mode								*
+  *	@return :				solution to line after block mergers										*
+  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 Line* MergeBlockPositions(Line* line, int length, int mode) {	//O(L)
 	static Line* solution = NULL;
 	int i;
 	
 	switch (mode) {
+		/* reset: clear solution */
 		case MODE_RESET: {
 			for (i = 0; i < length; i++) {
 				free(solution->cells[i]);
@@ -24,11 +34,13 @@ Line* MergeBlockPositions(Line* line, int length, int mode) {	//O(L)
 			solution = NULL;
 			break;
 		}
+		/* get: just GET out of here and return solution */
 		case MODE_GET: {
 			break;
 		}
+		/* compare line arg with current solution. If no current solution, create solution line and copy the arg line to it */
 		case MODE_TEST: {
-			if (solution == NULL) {		//line is brand new
+			if (solution == NULL) {		//line is brand new, we had no previous solution
 				/* clone the line */
 				solution = (Line*) malloc(sizeof(Line));
 				solution->blockNum = line->blockNum;
@@ -42,14 +54,14 @@ Line* MergeBlockPositions(Line* line, int length, int mode) {	//O(L)
 				solution->cells = (Cell**) malloc(length*sizeof(Cell*));
 				for (i = 0; i < length; i++) {
 					solution->cells[i] = (Cell*) malloc(sizeof(Cell));
-					SetState(solution->cells[i], GetState(line->cells[i]));
+					solution->cells[i]->state = line->cells[i]->state;
 				}
 			
 			} else {	//if it's not the first time, then we have to update the solution based on mismatches with the new version of the line
 				/* every cell in this version of the line that mismatches the previously held solution gets set to unknown */
 				for (i = 0; i < length; i++) {
-					if (GetState(line->cells[i]) != GetState(solution->cells[i])) {
-						SetState(solution->cells[i], STATE_UNKN);
+					if (line->cells[i]->state != solution->cells[i]->state) {
+						solution->cells[i]->state = STATE_UNKN;
 					}
 				}
 			}
@@ -63,7 +75,7 @@ Line* MergeBlockPositions(Line* line, int length, int mode) {	//O(L)
 
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
   * ExamineBlocks:			Tests every possible block position based on previous block positions, and	*
-  *							attempts to discover implicit cells.										*
+  *	O(TODO)					attempts to discover implicit cells.										*
   *																										*
   * @param Line* :			line whose blocks we're examining											*
   * @param int :			block index we're on														*
