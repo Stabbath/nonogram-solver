@@ -1,8 +1,3 @@
-/*
-//possible special case: quando uma linha das extremidades (ie antes/a seguir da qual o puzzle acaba) é resolvida parcialmente, já sabemos a disposição completa de pelo menos um dos blocos das linhas perpendiculares as celulas resolvidas. 
-Por exemplo, se descobrirmos que toda a última linha é composta por #'s, entao o último bloco de todas as colunas está de imediato descoberto!
-*/
-
 #ifndef _SOLVER_INCLUDED
 #define _SOLVER_INCLUDED
 
@@ -23,28 +18,28 @@ Por exemplo, se descobrirmos que toda a última linha é composta por #'s, entao
 #define AXES 2
 
 typedef struct _cell {
-	char state;		//STATE_FULL, STATE_BLNK, STATE_UNKN
-	struct _line* row;
-	struct _line* col;
+	char state;			//STATE_FULL, STATE_BLNK, STATE_UNKN
+	struct _line* row;	//row this cell belongs to
+	struct _line* col;	//column this cell belongs to
 } Cell;
 
 typedef struct _block {
-	int length;
-	int min;
-	int max;
+	int length;	//how long is this block
+	int min;	//what's the lowest cell index that can possibly be a part of this block
+	int max;	//what's the highest cell index that can possibly be a part of this block
 } Block;
 
 typedef struct _line {
 	Cell** cells;	//array of pointers to cells
 	Block* block;	//array of blocks for this line
-	int blockNum;
-	int unsolvedCells;
+	int blockNum;	//number of blocks in this line
+	int unsolvedCells;	//number of unknowns ('?') in this line
 } Line;
 
 typedef struct _puzzle {
-	char* name;
-	int* length;				//number of rows and columns
-	Line** line;				//2 arrays of lines
+	char* name;		//name of input puzzle, minus extension
+	int* length;	//number of rows and columns
+	Line** line;	//2 arrays of lines (1 for rows, 1 for columns)
 } Puzzle;
 
 //solverio.c
@@ -70,10 +65,15 @@ int 	checkpuzzle						(Puzzle*);
 void 	LinkCellsToLines				(Puzzle*);
 void 	SetupMinsAndMaxes				(Puzzle*);
 
-
 //presolver.c
-int presolve(Puzzle* puzzle);
-int stackline(Line* line, int length);
+int 	presolve	(Puzzle*);
+int 	stackline	(Line*, 	int);
+
+//solver.c - also contains main
+Line* 	MergeBlockPositions	(Line*, 	int, 		int);
+void 	ExamineBlocks		(Line*, 	int, 		int, 		int , 	Stack*, 	int);
+int 	solveline			(Puzzle*, 	Stack**, 	Stack*, 	int);
+void 	solve				(Puzzle*, 	Stack**, 	Stack*, 	int);
 
 
 #endif

@@ -7,7 +7,6 @@
 #define MODE_GET 0
 #define MODE_RESET 1
 #define MODE_TEST 2
-
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
   * MergeBlockPositions: 	Tests a line's different block configurations against each other as they are*
   *	O(L)					identified by ExamineBlocks. Finds out which cells can be determined with 	*
@@ -71,6 +70,8 @@ Line* MergeBlockPositions(Line* line, int length, int mode) {	//O(L)
 	
 	return solution;
 }
+
+
 
 
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -183,7 +184,7 @@ void ExamineBlocks(Line* line, int n, int length, int start, Stack* cellstack, i
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 int solveline(Puzzle* puzzle, Stack** stack, Stack* cellstack, int x) {
 	Line* line = Pop(stack[x]);
-//	if (line->unsolvedCells == 0) return 0;		//don't test solved lines
+	if (line->unsolvedCells == 0) return 0;		//don't test solved lines
 	
 	int length = puzzle->length[!x];
 	int solvedCells = 0;
@@ -236,6 +237,7 @@ int solveline(Puzzle* puzzle, Stack** stack, Stack* cellstack, int x) {
   *	@noreturn																							*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 void solve(Puzzle* puzzle, Stack** stack, Stack* cellstack, int unsolvedCellCount) {
+	/* continuously solve puzzle */
 	while (!(IsStackEmpty(stack[ROW]) && IsStackEmpty(stack[COL])) && unsolvedCellCount > 0) {
 		if (!IsStackEmpty(stack[ROW])) {
 			unsolvedCellCount -= solveline(puzzle, stack, cellstack, ROW);
@@ -314,24 +316,25 @@ int main(int num, char** args) {
 	
 	if (strlen(args[1]) >= MAXPATH) errorout(ERROR_ARGS, "Filename too long.");
 	
-	Puzzle* puzzle = getPuzzle(args[1]);	//O(L²)
+	Puzzle* puzzle = getPuzzle(args[1]);
 		
 	int unsolvedCellCount = presolve(puzzle);
-	if (unsolvedCellCount > 0) {	//O(L*N²)
-		LinkCellsToLines(puzzle);
+	if (unsolvedCellCount > 0) {	//presolve did not fully solve puzzle and did not detect impossibility
+		LinkCellsToLines(puzzle);	//post pre-solve preparations
 		SetupMinsAndMaxes(puzzle);
 
-		Stack** stack = InitStacks(puzzle);	//O(L)
-		solve(puzzle, stack, NULL, unsolvedCellCount);		//O(TODO)
-		FreeStacks(stack);	//O(1)
+		/* solve! */
+		Stack** stack = InitStacks(puzzle);
+		solve(puzzle, stack, NULL, unsolvedCellCount);
+		FreeStacks(stack);
 	} else
-	if (unsolvedCellCount == 0) {
-		ExportSolution(puzzle, NULL);
+	if (unsolvedCellCount == 0) {	//presolve fully solved puzzle
+		ExportSolution(puzzle, NULL);	//export one and only solution
 	}
 	
-	ExportSolution(NULL, puzzle->name);	//O(1)
+	ExportSolution(NULL, puzzle->name);	//if no solutions were found, this will create a blank file, meaning the puzzle is impossible
 	
-	FreePuzzle(puzzle);	//O(L²)
+	FreePuzzle(puzzle);
 	
 	return 0;
 }
