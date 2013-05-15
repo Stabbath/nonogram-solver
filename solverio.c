@@ -2,62 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <stdarg.h>
 #include "stacks.h"
 #include "solver.h"
-
-
-/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-  * debp: 					debug print! if DEBUG is defined, will print a string just like printf would*
-  *							but flushes the output stream straight away.								*
-  *																										*
-  * @param char* :			string with text to be written to stdout									*
-  * @param ... : 			additional args based on format												*
-  *	@noreturn																							*
-  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-void debp(const char* format, ... ) {
-	#ifdef DEBUG
-		va_list args;
-		va_start(args, format);
-		vprintf(format, args);
-		va_end(args);
-		fflush(stdout);
-	#endif
-}
-
-
-
-/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-  * ExportConfig: 			Exports a puzzle's config in the same format as the input one. 			*
-  *																										*
-  * @param Puzzle* :		puzzle to get config from													*
-  * @param FILE* : 			output stream																*
-  *	@noreturn																							*
-  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-void ExportConfig(Puzzle* puzzle, FILE* stream) {
-	int i, j;
-	fprintf(stream, "%d\n", puzzle->length[ROW]);
-	fprintf(stream, "%d\n", puzzle->length[COL]);
-	fprintf(stream, "\n");
-	for (j = 0; j < puzzle->length[ROW]; j++) {
-		fprintf(stream, "%d ", puzzle->line[ROW][j].blockNum);
-		for (i = 0; i < puzzle->line[ROW][j].blockNum; i++) {
-			fprintf(stream, "%d ", puzzle->line[ROW][j].block[i].length);
-		}
-		fprintf(stream, "\n");
-	}
-	fprintf(stream, "\n");
-	for (j = 0; j < puzzle->length[COL]; j++) {
-		fprintf(stream, "%d ", puzzle->line[COL][j].blockNum);
-		for (i = 0; i < puzzle->line[COL][j].blockNum; i++) {
-			fprintf(stream, "%d ", puzzle->line[COL][j].block[i].length);
-		}
-		fprintf(stream, "\n");
-	}
-	fprintf(stream, "\n");
-}
-
-
 
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
   * ExportSolution: O(L²)	Exports a puzzle's solution as a grid of ASCII characters (#, -, ?)			*
@@ -78,7 +24,6 @@ void ExportSolution(Puzzle* puzzle, char* name) {	//O(L²)
 			strcpy(filename, name);
 			strcat(filename, ".sol");
 			FILE* stream = fopen(filename, "w");
-			fprintf(stream, "\n");
 			fclose(stream);
 		}
 	} else {
@@ -121,10 +66,8 @@ void ExportSolution(Puzzle* puzzle, char* name) {	//O(L²)
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 void getDimension(Puzzle* puzzle, FILE* fp, int coord) {	//O(1)
 	char buffer[BUFFERSIZE];
-	if (fgets(buffer, sizeof(buffer), fp) == NULL)
-		errorout(ERROR_BADFORMAT, "File ended unexpectedly (row num).");
-	if (sscanf(buffer, "%d", &(puzzle->length[coord])) <= 0)
-		errorout(ERROR_BADFORMAT, "Row number not an integer.");
+	fgets(buffer, sizeof(buffer), fp);
+	sscanf(buffer, "%d", &(puzzle->length[coord]));
 }
 
 
@@ -142,7 +85,7 @@ void readBlockLenghts(Puzzle* puzzle, FILE* fp, int coord) {	//O(L²)
 		int i, j, n;
 		char buffer[BUFFERSIZE];
 		for (i = 0; i < puzzle->length[ROW]; i++) {	//O(Lr*(Lc+N)) = O(L² + L*N) = O(L²) , N << L
-			if (fgets(buffer, sizeof(buffer), fp) == NULL)	errorout(ERROR_BADFORMAT, "File ended unexpectedly (block lengths).");
+			fgets(buffer, sizeof(buffer), fp);
 
 			sscanf(buffer, " %d", &puzzle->line[ROW][i].blockNum);
 			if (puzzle->line[ROW][i].blockNum > 0) {
@@ -152,10 +95,8 @@ void readBlockLenghts(Puzzle* puzzle, FILE* fp, int coord) {	//O(L²)
 				if ((puzzle->line[ROW][i].block = (Block*) malloc(sizeof(Block))) == NULL)	errorout(ERROR_MEM, "Could not create *block[ROW].");
 				puzzle->line[ROW][i].block[0].length = 0;
 				puzzle->line[ROW][i].blockNum = 1;
-			} else {
-				errorout(ERROR_BADFORMAT, "Found a negative number.");
 			}
-		
+			
 			puzzle->line[ROW][i].unsolvedCells = puzzle->length[COL];
 
 			if ((puzzle->line[ROW][i].cells = (Cell**) malloc(puzzle->length[COL]*sizeof(Cell*))) == NULL)	errorout(ERROR_MEM,"Could not create rows[i].cells.");
@@ -184,7 +125,7 @@ void readBlockLenghts(Puzzle* puzzle, FILE* fp, int coord) {	//O(L²)
 		int i, j, n;
 		char buffer[BUFFERSIZE];
 		for (i = 0; i < puzzle->length[COL]; i++) {	//O(Lc*(Lr+N)) = O(L² + L*N) = O(L²)
-			if (fgets(buffer, sizeof(buffer), fp) == NULL)	errorout(ERROR_BADFORMAT, "File ended unexpectedly (block lengths).");
+			fgets(buffer, sizeof(buffer), fp);
 
 			sscanf(buffer, " %d", &puzzle->line[COL][i].blockNum);
 			if (puzzle->line[COL][i].blockNum > 0) {
@@ -194,10 +135,8 @@ void readBlockLenghts(Puzzle* puzzle, FILE* fp, int coord) {	//O(L²)
 				if ((puzzle->line[COL][i].block = (Block*) malloc(sizeof(Block))) == NULL)	errorout(ERROR_MEM, "Could not create *block[COL].");
 				puzzle->line[COL][i].block[0].length = 0;
 				puzzle->line[COL][i].blockNum = 1;
-			} else {
-				errorout(ERROR_BADFORMAT, "Found a negative number.");
 			}
-
+			
 			puzzle->line[COL][i].unsolvedCells = puzzle->length[ROW];
 
 			if ((puzzle->line[COL][i].cells = (Cell**) malloc(puzzle->length[ROW]*sizeof(Cell*))) == NULL)	errorout(ERROR_MEM,"Could not create rows[i].cells.");
@@ -246,10 +185,7 @@ void errorout(char* type, char* details) {	//O(1)
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 void checkblankln(FILE* fp) {	//O(1)
 	char buffer[BUFFERSIZE];
-	if (fgets(buffer, sizeof(buffer), fp) == NULL)	//do we even have a line to read?
-		errorout(ERROR_BADFORMAT, "File ended unexpectedly (was expecting a blank line).");
-	if (strcmp(buffer, "\n") != 0)	//line is there but not blank!
-		errorout(ERROR_BADFORMAT, "Blank line was not blank (check for whitespace other than \\n).");
+	fgets(buffer, sizeof(buffer), fp);
 }
 
 
@@ -277,12 +213,12 @@ Puzzle* getPuzzle(char* name) {	//O(L²)
 	if (fp == NULL)	errorout(ERROR_404, "Wrong directory or name for puzzle config.");
 	
 	Puzzle* puzzle = (Puzzle*) malloc(sizeof(Puzzle));
+	if (puzzle == NULL) errorout(ERROR_MEM, "Could not create Puzzle.");
+
 	puzzle->name = name;
 	name[dot] = '\0'; //to cut out the extension
 	
-	if (puzzle == NULL) errorout(ERROR_MEM, "Could not create Puzzle.");
-	
-	if ((puzzle->length = (int*) malloc(AXES*sizeof(int))) == NULL)	errorout(ERROR_MEM, "Could not create lengths.");
+	if ((puzzle->length = (int*) malloc(AXES*sizeof(int))) == NULL)	 errorout(ERROR_MEM, "Could not create lengths.");
 	
 	//O(1) routines
 	getDimension(puzzle, fp, ROW);	//get 1st line - L = number of rows
@@ -299,10 +235,10 @@ Puzzle* getPuzzle(char* name) {	//O(L²)
 	readBlockLenghts(puzzle, fp, COL);	//next C lines have col block lengths
 	checkblankln(fp);					//get (3+L+1+C+1)th line - must be blank
 
-	char buffer[BUFFERSIZE];
+/*	char buffer[BUFFERSIZE];
 	if (fgets(buffer, sizeof(buffer), fp) != NULL) {	//file must end after previous blank line
 		errorout(ERROR_BADFORMAT, "File did not end when expected.");
-	}
+	}*/
 
 	/*get basic mins and maxes for each block*/
 	int i, j, n, min, max, length;

@@ -6,15 +6,13 @@ Por exemplo, se descobrirmos que toda a última linha é composta por #'s, entao
 #ifndef _SOLVER_INCLUDED
 #define _SOLVER_INCLUDED
 
-#define DEBUG
-
 #define ERROR_BADFORMAT "Error! Invalid file formatting."
 #define ERROR_404		"Error! File not found."
 #define ERROR_MEM		"Error! Failed to allocate memory."
 #define ERROR_ARGS		"Error! Invalid commandline arguments."
 
 #define BUFFERSIZE	64
-#define MAXPATH	64
+#define MAXPATH		BUFFERSIZE
 
 #define STATE_FULL '#'	//states are characters so that they can be printed directly
 #define STATE_BLNK '-'	//and use up less memory
@@ -50,8 +48,6 @@ typedef struct _puzzle {
 } Puzzle;
 
 //solverio.c
-void 	debp				(const char*, 	...);
-void 	ExportConfig		(Puzzle*, 	FILE*);
 void 	ExportSolution		(Puzzle*,	char*);
 void 	getDimension		(Puzzle*, 	FILE*,	int);
 void 	readBlockLenghts	(Puzzle*, 	FILE*,	int);
@@ -68,5 +64,14 @@ void 	FreeStacks						(Stack**);
 Stack** InitStacks						(Puzzle*);
 Cell* 	PickCell						(Puzzle*,	int*,	int*);
 void 	ConditionalPush					(Stack*,	Line*);
+
+
+int checkpuzzle(Puzzle* puzzle);
+
+
+//presolver.c
+int presolve(Puzzle* puzzle);
+int stackline(Line* line, int length);
+
 
 #endif
