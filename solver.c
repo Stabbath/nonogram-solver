@@ -215,19 +215,13 @@ int solveline(Puzzle* puzzle, Stack** stack, Stack* cellstack, int x) {
 
 
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-  * solve: O(TODO)			Solves cells implicitly based on the line's native characteristics			*
-  * 						ie block number and block sizes.											*
+  * solve: O(TODO)			Solves cells in a complete way to find all possible solutions to the puzzle	*
   *																										*
   * @param Puzzle* :		puzzle to solve																*
-  * @param Stack** :		stack array	to use															*
+  * @param Stack** :		stack array	to push rows and columns to										*
+  * @param Stack* :			stack to push changed cells to												*
   * @param int :			number of unsolved cells													*
   *	@noreturn																							*
-  * 																									*
-  * @verbose : 				uses solveline for every row in the stacks until they are empty or the 		*
-  * 						puzzle has been solved. If the stacks are emptied before the solution is 	*
-  *							found, selects a STATE_UNKN cell and tests it for both values recursively,	*
-  *							after pushing the row and column that the selected cell belongs to onto the	*
-  *							solver stack. Does this until all solutions have been found.				*
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 void solve(Puzzle* puzzle, Stack** stack, Stack* cellstack, int unsolvedCellCount) {
 	while (!(IsStackEmpty(stack[ROW]) && IsStackEmpty(stack[COL])) && unsolvedCellCount > 0) {
@@ -239,172 +233,70 @@ void solve(Puzzle* puzzle, Stack** stack, Stack* cellstack, int unsolvedCellCoun
 		}
 	}
 
-	if (unsolvedCellCount > 0) {
-		Stack* nextcellstack = CreateStack();
+	if (unsolvedCellCount > 0) {	//puzzle could not be fully solved through regular means... time to guess
+		Stack* nextcellstack = CreateStack();	//for reverting changes in case guess is wrong
 		
 		int row, col;
-		Cell* pick = PickCell(puzzle, &row, &col);	//O(L²) TODO but might be improved
+		Cell* pick = PickCell(puzzle, &row, &col);	//cell we're going to guess values
 		Cell* cell;
 		
+		/* even if the cell is wrong, it has to be considered correct */
 		puzzle->line[ROW][row].unsolvedCells--;
 		puzzle->line[COL][col].unsolvedCells--;
-
+		
+		/* try the value # and then try solving again based on the new information */
 		pick->state = STATE_FULL;
 		Push(stack[ROW], (void*) &puzzle->line[ROW][row]);
 		Push(stack[COL], (void*) &puzzle->line[COL][col]);
 		solve(puzzle, stack, nextcellstack, unsolvedCellCount - 1);
-		while (!IsStackEmpty(nextcellstack)) {
+		while (!IsStackEmpty(nextcellstack)) {	//undo changes
 			cell = (Cell*) Pop(nextcellstack);
 			cell->state = STATE_UNKN;
 			cell->row->unsolvedCells++;
 			cell->col->unsolvedCells++;
 		}
 		
+		/* try value - and then try solving again based on the new information. 
+		   even if # led to a solution, this will let us find ALL solutions */
 		pick->state = STATE_BLNK;
 		Push(stack[ROW], (void*) &puzzle->line[ROW][row]);
 		Push(stack[COL], (void*) &puzzle->line[COL][col]);
 		solve(puzzle, stack, nextcellstack, unsolvedCellCount - 1);
-		while (!IsStackEmpty(nextcellstack)) {
+		while (!IsStackEmpty(nextcellstack)) {	//undo changes
 			cell = (Cell*) Pop(nextcellstack);
 			cell->state = STATE_UNKN;
 			cell->row->unsolvedCells++;
 			cell->col->unsolvedCells++;
 		}
 		
-		pick->state = STATE_UNKN;
+		pick->state = STATE_UNKN;	//undo the picked cell
+		puzzle->line[ROW][row].unsolvedCells++;
+		puzzle->line[COL][col].unsolvedCells++;
 		
-		ClearStack(nextcellstack);
+		ClearStack(nextcellstack);	//should already be cleared, but clear it anyway
 		free(nextcellstack);
 	} else
-	if (unsolvedCellCount == 0) {
-		if (checkpuzzle(puzzle)) ExportSolution(puzzle, NULL);
+	if (unsolvedCellCount == 0) {	//the puzzle has no more '?'s
+		if (checkpuzzle(puzzle)) ExportSolution(puzzle, NULL);	//check solution and export it if correct
 	} else {
 		//invalid solution, get out
 	}
 	
-	ClearStack(stack[ROW]);	//just in case
-	ClearStack(stack[COL]);	//
-
+	ClearStack(stack[ROW]);	//in case they are not empty yet
+	ClearStack(stack[COL]);
 	
 	return;
 }
 
-int getSumOfBlocks(Line* line) {
-	if (line->block[0].length == 0) return 0;
-	
-	int i, count = 0;
-	for (i = 0; i < line->blockNum; i++) {	//O(N - n) = O(N) worst case
-		count += line->block[i].length;
-	}
-	return count;
-}
-
-int checkline(Line* line, int length) {
-	if (line->block[0].length == 0) return 1;	//blank lines are correctly always filled
-
-	int sum = getSumOfBlocks(line);
-	int count = 0;
-	int streak = 0;
-	int j;
-	Stack* streakStack = CreateStack();
-	for (j = 0; j < length; j++) {
-		if (line->cells[j]->state == STATE_FULL) {
-			count++;
-			streak++;
-		}
-		if (line->cells[j]->state == STATE_BLNK || j == length - 1) {
-			if (streak != 0) {
-				int* tmp = malloc(sizeof(tmp));
-				*tmp = streak;
-				Push(streakStack, (void*) tmp);
-			}
-			streak = 0;
-		}
-	}
-
-	int success = 1;
-
-	if (sum != count) {	//number of # is different from what was expected
-		success = 0;
-	}	
-	
-	if (success) {
-		int n;
-		int* tmp;
-		for (n = line->blockNum - 1; n >= 0; n--) {
-			if (IsStackEmpty(streakStack)) {	//means there were less blocks than there were supposed to be
-				success = 0;
-				break;
-			}
-		
-			tmp = (int*) Pop(streakStack);
-			if (line->block[n].length != *tmp) {	//means this block had the wrong length
-				success = 0;
-			}
-		
-			free(tmp);
-		}
-	}
-	if (!IsStackEmpty(streakStack)) {
-		success = 0;	//means there were more blocks than there were supposed to be
-		while (!IsStackEmpty(streakStack)) {
-			free(Pop(streakStack));
-		}
-	}
-	free(streakStack);
-	
-	return success;
-}
-
-int checkpuzzle(Puzzle* puzzle) {
-	int i, x;
-	Line* lines;
-	for (x = ROW; x < AXES; x++) {
-		lines = puzzle->line[x];
-		for (i = 0; i < puzzle->length[x]; i++) {
-			if (!checkline(&lines[i], puzzle->length[!x])) return 0;
-		}
-	}
-	
-	return 1;
-}
-
-void LinkCellsToLines(Puzzle* puzzle) {
-	int i, j;	//store lines each cell belongs to inside of the cell structs
-	for (i = 0; i < puzzle->length[ROW]; i++) {
-		for (j = 0; j < puzzle->length[COL]; j++) {
-			puzzle->line[ROW][i].cells[j]->row = &puzzle->line[ROW][i];
-			puzzle->line[COL][j].cells[i]->col = &puzzle->line[COL][j];
-		}
-	}
-}
 
 
-void SetupMinsAndMaxes(Puzzle* puzzle) {
-	/*get basic mins and maxes for each block*/
-	int i, j, n, min, max, length;
-	Line* line;
-	for (j = ROW; j < AXES; j++) {
-		for (i = 0; i < puzzle->length[j]; i++) {
-			line = &puzzle->line[j][i];
-			length = puzzle->length[!j];
-			min = 0;
-			max = length - 1 - (getMinSumOfBlocksAndBlanks(line, 0) - line->block[0].length);
-			for (n = 0; n < line->blockNum; n++) {
-				line->block[n].min = min;
-				line->block[n].max = max;
-				
-				if (n < line->blockNum - 1) {
-					min += line->block[n].length + 1;
-					max += line->block[n + 1].length + 1;
-				}
-			}
-		}
-	}
-}
-
-
-
+/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+  * main: O(TODO)			Solves a nonogram puzzle													*
+  *																										*
+  * @param int :			number of arguments															*
+  * @param char** :			string array of arguments													*
+  *	@return int :			always returns 0 (or exit(1) if an error occurs)							*
+  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 int main(int num, char** args) {
 	if (num < 2) errorout(ERROR_ARGS, "No file name was given.");
 	

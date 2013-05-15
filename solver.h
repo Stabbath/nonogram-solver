@@ -64,9 +64,11 @@ void 	FreeStacks						(Stack**);
 Stack** InitStacks						(Puzzle*);
 Cell* 	PickCell						(Puzzle*,	int*,	int*);
 void 	ConditionalPush					(Stack*,	Line*);
-
-
-int checkpuzzle(Puzzle* puzzle);
+int 	getSumOfBlocks					(Line*);
+int 	checkline						(Line*, 	int);
+int 	checkpuzzle						(Puzzle*);
+void 	LinkCellsToLines				(Puzzle*);
+void 	SetupMinsAndMaxes				(Puzzle*);
 
 
 //presolver.c
